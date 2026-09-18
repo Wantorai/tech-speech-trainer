@@ -6,7 +6,7 @@ The planned training loop is simple: listen to a short recording, type the Engli
 
 ## Project status
 
-**Early development — repository foundation only.** There is no runnable application yet. Local and Docker setup instructions will be added when those workflows are implemented and verified.
+**Early development — local AI evaluation.** The repository contains a runnable evaluation script, but no training application yet. Application and Docker setup instructions will be added when those workflows are implemented and verified.
 
 This is a learning project focused on Python development, practical AI integration, and a reproducible setup for reviewers.
 
@@ -46,22 +46,70 @@ Initial topics will cover introductions and responsibilities, previous projects 
 | Backend | Python and FastAPI |
 | Interface | Jinja2 templates, HTML, CSS, and a small amount of JavaScript |
 | Storage | SQLite |
-| AI feedback | A separate Python module; provider selection pending evaluation |
+| AI feedback | Local Qwen3 4B through Ollama, in a separate Python module |
 | Audio | Prepared recordings first; text-to-speech integration in a later step |
 | Quality checks | pytest, Ruff, and GitHub Actions |
 | Packaging | Docker and Docker Compose |
 
-We will evaluate a small local model through Ollama for response quality and latency before choosing the first AI provider. A paid API remains an option. Text feedback and speech generation are separate capabilities and may use different providers.
+Qwen3 4B through Ollama is selected for the first educational release, with the measured limitations below. The application will compute text differences and accuracy in Python; the model will provide supplementary explanations in Russian. Evaluation of explanations based on precomputed differences is still pending. Text feedback and speech generation are separate capabilities and may use different providers.
 
-The initial experiment will use prepared examples covering correct answers, spelling mistakes, omissions, word substitutions, and missing negation. A demo mode without an AI key is still under consideration.
+The evaluation uses prepared examples covering correct answers, spelling mistakes, omissions, word substitutions, and missing negation. A demo mode without an AI key is still under consideration.
+
+## Run the local AI evaluation
+
+The evaluation uses Python 3.12 or later and the standard library only. It includes 18 synthetic cases: 16 model inputs and two empty inputs that are rejected locally. These are evaluation fixtures, not the planned exercise catalog.
+
+Validate the fixtures and run the offline harness tests from the repository root:
+
+```sh
+python scripts/evaluate_local_ai.py --check-only
+python -m unittest discover -s tests -v
+```
+
+Use the command for your installed interpreter if it differs, such as `python3` or `python3.12`.
+
+To evaluate the model, install Ollama ([Windows instructions](https://docs.ollama.com/windows)) and start its local server. Then download the model and run:
+
+```sh
+ollama pull qwen3:4b
+python scripts/evaluate_local_ai.py --model qwen3:4b
+```
+
+The model download is approximately 2.5 GB; inference needs additional memory. The script connects only to `http://127.0.0.1:11434`, with no API key. Initial downloads require internet access. On a machine with limited memory, close unnecessary applications before evaluating.
+
+Repeat selected cases to inspect consistency:
+
+```sh
+python scripts/evaluate_local_ai.py --case exact --case negation --case typo --repeat 2
+```
+
+Results are saved incrementally under the ignored `var/evals/` directory. They include model metadata, settings, raw responses, and timings. The script checks the response contract and expected text differences; explanations still require human review. Different but valid grouping of changed words can fail the strict difference check. Exit code zero indicates that requests and response validation completed, not that the model passed a quality assessment.
+
+The experimental prompt accepts equivalent contractions and number spellings. These rules are provisional until the application's text comparison is implemented.
+
+### Initial findings
+
+On September 18, 2026, Qwen3 4B Q4_K_M was evaluated using Ollama 0.34.2 on a Ryzen 5 5500U with 16 GB RAM, using CPU inference, a 2,048-token context, and thinking disabled.
+
+| Measure | Initial prompt | Revised prompt |
+| --- | --- | --- |
+| Completed responses meeting the output contract | 16/16 | 16/16 |
+| Exact expected difference pairs | 6/16 | 9/16 |
+| Acceptable feedback after manual review | 7/16 | 12/16 |
+| Median request time | 9.1 seconds | 7.6 seconds |
+| Maximum request time | 17.5 seconds | 12.8 seconds |
+
+Both runs rejected the two empty inputs without model requests. The revised prompt fixed some reference/answer reversals and recognized the instruction embedded in an answer, but still invented a missing word, missed a spelling mistake, and mishandled an equivalent contraction. It did not reach the initial target of 14 acceptable responses out of 16. The local model is retained for the educational release as a supplementary feedback component; it will not determine the accuracy score.
+
+Manual review accepted some longer quoted spans that failed the strict pair check. This was a small synthetic set reused for prompt revision, not an independent benchmark. The result supports keeping deterministic text comparison separate from AI feedback; it does not establish how this model would perform when explaining precomputed differences.
 
 ## Roadmap
 
 - [x] Establish the repository foundation and document the intended scope.
-- [ ] Evaluate a local AI model and select the first feedback provider.
+- [x] Evaluate and select a local model, recording quality and latency limitations.
 - [ ] Build a minimal Python application and training page.
 - [ ] Complete one exercise with audio playback and text comparison.
-- [ ] Add validated AI feedback and handle provider failures.
+- [ ] Evaluate explanations of precomputed differences; integrate local AI feedback and handle provider failures.
 - [ ] Expand to 24 exercises and save attempt history.
 - [ ] Verify Docker setup and add automated checks and screenshots.
 
