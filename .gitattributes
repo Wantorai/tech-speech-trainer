@@ -1,0 +1,17 @@
+# Keep text files consistent across Windows and Linux.
+* text=auto eol=lf
+
+# Windows command scripts use native line endings.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Audio and image assets must not undergo text conversion.
+*.mp3 binary
+*.wav binary
+*.ogg binary
+*.m4a binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
