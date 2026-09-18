@@ -26,10 +26,15 @@ class EvaluationTests(unittest.TestCase):
 
     @patch("scripts.evaluate_local_ai.api")
     def test_expected_answers_are_not_sent_to_model(self, api):
-        api.return_value = {"done": True, "done_reason": "stop", "message": {
-            "content": '{"summary_ru":"Пропущено отрицание.","issues":['
-                       '{"expected":"not","heard":"","explanation_ru":"Смысл изменился на противоположный."}]'
-                       '}'}}
+        api.return_value = {
+            "done": True,
+            "done_reason": "stop",
+            "message": {
+                "content": '{"summary_ru":"Пропущено отрицание.","issues":['
+                '{"expected":"not","heard":"","explanation_ru":"Смысл изменился на противоположный."}]'
+                "}"
+            },
+        }
         result = evaluate_case(self.case, "test-model", 1)
         self.assertTrue(result["pairs_match"])
         request = api.call_args.args[1]
@@ -39,23 +44,32 @@ class EvaluationTests(unittest.TestCase):
 
     @patch("scripts.evaluate_local_ai.api")
     def test_truncated_response_is_not_accepted(self, api):
-        api.return_value = {"done": True, "done_reason": "length", "message": {
-            "content": '{"summary_ru":"Всё верно.","issues":[]}'}}
+        api.return_value = {
+            "done": True,
+            "done_reason": "length",
+            "message": {"content": '{"summary_ru":"Всё верно.","issues":[]}'},
+        }
         result = evaluate_case(self.case, "test-model", 1)
         self.assertEqual(result["status"], "error")
         self.assertIn("truncated", result["error"])
 
     @patch("scripts.evaluate_local_ai.api")
     def test_invalid_contract_is_not_accepted(self, api):
-        api.return_value = {"done": True, "done_reason": "stop", "message": {
-            "content": '{"summary_ru":"Всё верно.","issues":"none"}'}}
+        api.return_value = {
+            "done": True,
+            "done_reason": "stop",
+            "message": {"content": '{"summary_ru":"Всё верно.","issues":"none"}'},
+        }
         result = evaluate_case(self.case, "test-model", 1)
         self.assertEqual(result["status"], "error")
 
     @patch("scripts.evaluate_local_ai.api")
     def test_correct_json_can_still_miss_a_real_error(self, api):
-        api.return_value = {"done": True, "done_reason": "stop", "message": {
-            "content": '{"summary_ru":"Всё верно.","issues":[]}'}}
+        api.return_value = {
+            "done": True,
+            "done_reason": "stop",
+            "message": {"content": '{"summary_ru":"Всё верно.","issues":[]}'},
+        }
         result = evaluate_case(self.case, "test-model", 1)
         self.assertEqual(result["status"], "valid")
         self.assertFalse(result["pairs_match"])

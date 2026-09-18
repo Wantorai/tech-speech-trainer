@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Английский на слух — Tech Speech Trainer{% endblock %}
+
+{% block content %}
+<section class="hero" aria-labelledby="hero-title">
+  <div>
+    <p class="eyebrow">ШАГ ЗА ШАГОМ К УВЕРЕННОМУ ИНТЕРВЬЮ</p>
+    <h1 id="hero-title">Знакомые слова.<br><span>Понятная речь.</span></h1>
+    <p class="lead">Слышать английскую речь бывает сложнее, чем читать её.
+      Начнём с коротких фраз о работе и постепенно перейдём к вопросам технического интервью.</p>
+    <a class="button" href="#how-it-works">Как устроена тренировка <span aria-hidden="true">↗</span></a>
+  </div>
+  <aside class="lesson-preview" aria-labelledby="preview-title">
+    <div class="preview-top"><span class="label">ПЕРВАЯ ТЕМА</span><span class="level-tag">Уровень 1</span></div>
+    <div class="soundwave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <h2 id="preview-title">Давайте познакомимся</h2>
+    <p>Твоя роль, команда и ежедневные задачи.<br>Одна фраза за раз.</p>
+    <div class="notice"><span class="status-dot" aria-hidden="true"></span>Первое упражнение готовится</div>
+    <p class="preview-note">Прослушивание и проверка ответа появятся на следующем этапе.</p>
+  </aside>
+</section>
+
+<section class="how-section" id="how-it-works" aria-labelledby="how-title">
+  <p class="eyebrow">ПРОСТОЙ РИТМ ЗАНЯТИЯ</p>
+  <h2 id="how-title">Сначала услышать. Потом разобраться.</h2>
+  <ol class="steps">
+    <li><span class="step-number" aria-hidden="true">01</span><h3>Слушай</h3><p>Короткая запись на английском. Можно переслушать столько раз, сколько нужно.</p></li>
+    <li><span class="step-number" aria-hidden="true">02</span><h3>Записывай</h3><p>Напиши услышанное на английском. Если слово не знакомо, запиши то, что удалось разобрать.</p></li>
+    <li><span class="step-number" aria-hidden="true">03</span><h3>Разбирайся</h3><p>Сравни с оригиналом и прочитай объяснения на русском. Ошибки подскажут, что повторить.</p></li>
+  </ol>
+</section>
+
+<section class="levels-section" aria-labelledby="levels-title">
+  <div class="section-heading"><h2 id="levels-title">От одной фразы до настоящего вопроса</h2><p>Четыре уровня сложности</p></div>
+  <div class="levels">
+    {% for level in levels %}
+    <article class="level-card">
+      <span class="level-number">УРОВЕНЬ {{ level.number }}</span>
+      <h3>{{ level.title }}</h3>
+      <p>{{ level.description }}</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

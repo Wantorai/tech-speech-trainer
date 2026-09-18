@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Практика английского на слух для разработчиков: от знакомства до технического интервью.">
+    <title>{% block title %}Tech Speech Trainer{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', path='/favicon.svg') }}" type="image/svg+xml">
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+  </head>
+  <body>
+    <a class="skip-link" href="#main">К содержимому</a>
+    <div class="page">
+      <header class="header">
+        <a class="brand" href="{{ url_for('home') }}" aria-label="Tech Speech Trainer — главная">
+          <img src="{{ url_for('static', path='/favicon.svg') }}" width="36" height="36" alt="">
+          <span>tech speech<span class="brand-subtitle">LISTEN. UNDERSTAND. GROW.</span></span>
+        </a>
+        <span class="header-note">Английский для разработчиков</span>
+      </header>
+      <main id="main">{% block content %}{% endblock %}</main>
+      <footer class="footer">Tech Speech Trainer · Учимся понимать речь на технических интервью.</footer>
+    </div>
+  </body>
+</html>

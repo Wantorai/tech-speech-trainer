@@ -1,17 +1,16 @@
 """Small, dependency-free Ollama evaluation. Run from the repository root."""
 
 import argparse
-from collections import Counter
-from datetime import datetime, timezone
 import hashlib
 import json
-from pathlib import Path
 import re
 import statistics
 import time
+from collections import Counter
+from datetime import datetime, timezone
+from pathlib import Path
 from urllib.error import URLError
 from urllib.request import ProxyHandler, Request, build_opener
-
 
 ROOT = Path(__file__).resolve().parents[1]
 CASES_PATH = ROOT / "evals" / "listening_cases.json"
@@ -67,7 +66,9 @@ HTTP = build_opener(ProxyHandler({}))
 
 def api(path, payload=None, timeout=120):
     data = None if payload is None else json.dumps(payload).encode("utf-8")
-    request = Request(BASE_URL + path, data=data, headers={"Content-Type": "application/json"})
+    request = Request(
+        BASE_URL + path, data=data, headers={"Content-Type": "application/json"}
+    )
     with HTTP.open(request, timeout=timeout) as response:
         return json.load(response)
 
@@ -86,7 +87,11 @@ def validate_feedback(feedback):
     if not isinstance(feedback["issues"], list):
         raise ValueError("Issues must be an array")
     for issue in feedback["issues"]:
-        if not isinstance(issue, dict) or set(issue) != {"expected", "heard", "explanation_ru"}:
+        if not isinstance(issue, dict) or set(issue) != {
+            "expected",
+            "heard",
+            "explanation_ru",
+        }:
             raise ValueError("Unexpected issue fields")
         if not all(isinstance(value, str) for value in issue.values()):
             raise ValueError("Issue values must be strings")
@@ -104,9 +109,16 @@ def evaluate_case(case, model, timeout):
         "model": model,
         "messages": [
             {"role": "system", "content": PROMPT},
-            {"role": "user", "content": json.dumps({
-                "transcript": case["transcript"], "learner_answer": case["answer"],
-            }, ensure_ascii=False)},
+            {
+                "role": "user",
+                "content": json.dumps(
+                    {
+                        "transcript": case["transcript"],
+                        "learner_answer": case["answer"],
+                    },
+                    ensure_ascii=False,
+                ),
+            },
         ],
         "format": SCHEMA,
         "stream": False,
@@ -125,10 +137,14 @@ def evaluate_case(case, model, timeout):
         feedback = json.loads(response["message"]["content"])
         validate_feedback(feedback)
         record["feedback"] = feedback
-        actual = Counter((normalized(issue["expected"]), normalized(issue["heard"]))
-                         for issue in feedback["issues"])
-        expected = Counter((normalized(pair[0]), normalized(pair[1]))
-                           for pair in case["expected_pairs"])
+        actual = Counter(
+            (normalized(issue["expected"]), normalized(issue["heard"]))
+            for issue in feedback["issues"]
+        )
+        expected = Counter(
+            (normalized(pair[0]), normalized(pair[1]))
+            for pair in case["expected_pairs"]
+        )
         record["pairs_match"] = actual == expected
         record["status"] = "valid"
     except (URLError, TimeoutError, OSError, ValueError, KeyError, TypeError) as error:
@@ -141,10 +157,14 @@ def evaluate_case(case, model, timeout):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", default="qwen3:4b")
-    parser.add_argument("--case", action="append", dest="case_ids", help="Repeat to select cases")
+    parser.add_argument(
+        "--case", action="append", dest="case_ids", help="Repeat to select cases"
+    )
     parser.add_argument("--repeat", type=int, default=1)
     parser.add_argument("--timeout", type=int, default=120)
-    parser.add_argument("--check-only", action="store_true", help="Validate fixtures without Ollama")
+    parser.add_argument(
+        "--check-only", action="store_true", help="Validate fixtures without Ollama"
+    )
     args = parser.parse_args()
     if args.repeat < 1 or args.timeout < 1:
         parser.error("repeat and timeout must be positive")
@@ -153,7 +173,10 @@ def main():
     if len(ids) != len(set(ids)):
         raise ValueError("Duplicate case IDs")
     for case in cases:
-        if not all(isinstance(case[key], str) for key in ("id", "transcript", "answer", "review_note")):
+        if not all(
+            isinstance(case[key], str)
+            for key in ("id", "transcript", "answer", "review_note")
+        ):
             raise ValueError("Invalid fixture strings")
         if not isinstance(case["expected_pairs"], list):
             raise ValueError("Expected pairs must be an array")
@@ -171,19 +194,31 @@ def main():
         version = api("/api/version", timeout=5)
         tags = api("/api/tags", timeout=5)
     except (URLError, OSError, ValueError) as error:
-        parser.exit(1, f"Cannot reach local Ollama: {error}\nStart Ollama and pull the model first.\n")
+        parser.exit(
+            1,
+            f"Cannot reach local Ollama: {error}\nStart Ollama and pull the model first.\n",
+        )
     models = [item for item in tags.get("models", []) if item.get("name") == args.model]
     if not models:
-        parser.exit(1, f"Model {args.model!r} is not installed. Run: ollama pull {args.model}\n")
+        parser.exit(
+            1, f"Model {args.model!r} is not installed. Run: ollama pull {args.model}\n"
+        )
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     output = ROOT / "var" / "evals" / f"{stamp}.jsonl"
     output.parent.mkdir(parents=True, exist_ok=True)
     metadata = {
-        "type": "metadata", "created_at_utc": stamp, "ollama": version,
-        "model": models[0], "options": OPTIONS, "think": False,
-        "prompt": PROMPT, "schema": SCHEMA, "timeout_seconds": args.timeout,
+        "type": "metadata",
+        "created_at_utc": stamp,
+        "ollama": version,
+        "model": models[0],
+        "options": OPTIONS,
+        "think": False,
+        "prompt": PROMPT,
+        "schema": SCHEMA,
+        "timeout_seconds": args.timeout,
         "fixtures_sha256": hashlib.sha256(CASES_PATH.read_bytes()).hexdigest(),
-        "case_ids": [case["id"] for case in cases], "repeat": args.repeat,
+        "case_ids": [case["id"] for case in cases],
+        "repeat": args.repeat,
     }
     records = []
     print(f"Results: {output}", flush=True)
@@ -196,21 +231,27 @@ def main():
                 records.append(record)
                 stream.write(json.dumps(record, ensure_ascii=False) + "\n")
                 stream.flush()
-                print(f"{case['id']} #{run}: {record['status']}, "
-                      f"pairs={record.get('pairs_match')}, "
-                      f"seconds={record.get('elapsed_seconds', 0)}", flush=True)
+                print(
+                    f"{case['id']} #{run}: {record['status']}, "
+                    f"pairs={record.get('pairs_match')}, "
+                    f"seconds={record.get('elapsed_seconds', 0)}",
+                    flush=True,
+                )
     times = [record["elapsed_seconds"] for record in records if record["request_sent"]]
     summary = {
         "requests": len(times),
         "valid_responses": sum(record["status"] == "valid" for record in records),
         "matching_pairs": sum(record.get("pairs_match", False) for record in records),
-        "rejected_empty": sum(record["status"] == "rejected_empty" for record in records),
+        "rejected_empty": sum(
+            record["status"] == "rejected_empty" for record in records
+        ),
         "median_seconds": round(statistics.median(times), 3) if times else None,
         "max_seconds": max(times) if times else None,
         "manual_review_required": True,
     }
     output.with_suffix(".summary.json").write_text(
-        json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     print(json.dumps(summary, indent=2))
     return 1 if any(record["status"] == "error" for record in records) else 0
 
