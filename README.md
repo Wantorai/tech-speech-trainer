@@ -130,7 +130,7 @@ Initial topics will cover introductions and responsibilities, previous projects 
 | Quality checks | pytest, Ruff, and GitHub Actions |
 | Packaging | Docker and Docker Compose |
 
-Qwen3 4B through Ollama is selected for the first educational release, with the measured limitations below. The application will compute text differences and accuracy in Python; the model will provide supplementary explanations in Russian. Evaluation of explanations based on precomputed differences is still pending. Text feedback and speech generation are separate capabilities and may use different providers.
+Qwen3 4B through Ollama is selected for the first educational release, with the measured limitations below. The application computes text differences and accuracy in Python; the model is intended to provide supplementary explanations in Russian. A separate experiment evaluates explanations of those computed differences. Text feedback and speech generation are separate capabilities and may use different providers.
 
 The evaluation uses prepared examples covering correct answers, spelling mistakes, omissions, word substitutions, and missing negation. A demo mode without an AI key is still under consideration.
 
@@ -164,7 +164,7 @@ python scripts/evaluate_local_ai.py --case exact --case negation --case typo --r
 
 Results are saved incrementally under the ignored `var/evals/` directory. They include model metadata, settings, raw responses, and timings. The script checks the response contract and expected text differences; explanations still require human review. Different but valid grouping of changed words can fail the strict difference check. Exit code zero indicates that requests and response validation completed, not that the model passed a quality assessment.
 
-The experimental prompt accepts equivalent contractions and number spellings. These rules are provisional until the application's text comparison is implemented.
+The original experimental prompt accepts equivalent contractions and number spellings. The application now handles the supported equivalents in Python, as described above.
 
 ### Initial findings
 
@@ -181,6 +181,26 @@ On September 18, 2026, Qwen3 4B Q4_K_M was evaluated using Ollama 0.34.2 on a Ry
 Both runs rejected the two empty inputs without model requests. The revised prompt fixed some reference/answer reversals and recognized the instruction embedded in an answer, but still invented a missing word, missed a spelling mistake, and mishandled an equivalent contraction. It did not reach the initial target of 14 acceptable responses out of 16. The local model is retained for the educational release as a supplementary feedback component; it will not determine the accuracy score.
 
 Manual review accepted some longer quoted spans that failed the strict pair check. This was a small synthetic set reused for prompt revision, not an independent benchmark. The result supports keeping deterministic text comparison separate from AI feedback; it does not establish how this model would perform when explaining precomputed differences.
+
+## Evaluate explanations of computed differences
+
+The next experiment passes the actual differences from `app.comparison` to Qwen3 4B. The model returns a Russian explanation for each difference ID. Python rejects missing, duplicate, or unknown IDs and malformed responses. Correct answers and empty inputs do not trigger inference. This experiment is separate from the web application.
+
+Run from the repository root, using the same local Ollama setup described above:
+
+```sh
+python -m scripts.evaluate_explanations --check-only
+python -m scripts.evaluate_explanations
+python -m scripts.evaluate_explanations --case negation --case typo --case two-errors --repeat 2
+```
+
+Logs are saved under `var/evals/explanations-*.jsonl`, including computed differences, raw responses, model settings, and input/code hashes. The experiment uses a 4,096-token context and a 1,024-token output limit. Response validation checks structure and references, not the truth of explanations; manual semantic review is still required. The existing 18-case set is reused, so prompt improvements on it are not an independent quality benchmark.
+
+On September 19, 2026, two CPU runs produced 11/11 structurally valid responses each; five equivalent answers and two empty inputs made no model requests. Manual review accepted 6/11 explanations initially and 7/11 after prompt revision, below the predeclared 10/11 target. Revised-run latency was 12.448 seconds median and 46.263 seconds maximum. Remaining issues included confusing negation, overstating the effect of an omission, an incorrect tense explanation, and presenting a possible typo as certain. The injected instruction was treated as answer data in both runs; this single case does not establish general prompt-injection resistance.
+
+The experiment supports keeping AI commentary supplementary. Critical meaning changes need reliable explanations before web integration; computed differences and accuracy remain independent of the model.
+
+Six additional requests repeated negation, spelling, and two-error cases twice. All passed structural validation; manual review accepted 3/6. One negation explanation improved on repetition while the other remained confusing. Fixed sampling settings did not guarantee identical text. These repeats are reported separately from the 11-case results.
 
 ## Roadmap
 
