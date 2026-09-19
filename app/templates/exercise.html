@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}{{ exercise.title }} — Tech Speech Trainer{% endblock %}
+{% block content %}
+<div class="exercise-page">
+  <a class="back-link" href="{{ url_for('home') }}">← На главную</a>
+  <div class="exercise-heading">
+    <p class="eyebrow">{{ exercise.topic }} · Уровень {{ exercise.level }}</p>
+    <h1>{{ exercise.title }}</h1>
+    <p>Прослушай запись и напиши услышанное на английском. Можно переслушивать без ограничений.</p>
+  </div>
+  <section class="practice-panel" aria-labelledby="audio-title">
+    <h2 id="audio-title">1. Послушай</h2>
+    <audio controls preload="metadata" aria-label="Английская запись упражнения">
+      <source src="{{ url_for('static', path='/' ~ exercise.audio_file) }}" type="audio/wav">
+      Ваш браузер не поддерживает аудиоплеер.
+    </audio>
+    <p class="field-hint">Американский английский · синтезированная речь</p>
+    <form method="post" action="{{ url_for('check_answer', exercise_id=exercise.id) }}#result">
+      <h2><label for="answer">2. Запиши услышанное</label></h2>
+      <textarea id="answer" name="answer" rows="4" maxlength="2000" required spellcheck="false" autocomplete="off" autocapitalize="off" lang="en" placeholder="Type what you hear…" aria-describedby="answer-hint{% if error %} answer-error{% endif %}" {% if error %}aria-invalid="true"{% endif %}>{{ answer }}</textarea>
+      <p class="field-hint" id="answer-hint">Регистр и обычная пунктуация не влияют на результат. Незнакомое слово можно пропустить.</p>
+      {% if error %}<div id="result"><p class="form-error" id="answer-error" role="alert">{{ error }}</p></div>{% endif %}
+      <button class="button" type="submit">{{ 'Проверить ещё раз' if result else 'Проверить' }} <span aria-hidden="true">→</span></button>
+    </form>
+  </section>
+
+  {% if result %}
+  <section class="result-panel" id="result" aria-labelledby="result-title">
+    <div class="result-heading">
+      <div><p class="eyebrow">РЕЗУЛЬТАТ ПОПЫТКИ</p><h2 id="result-title">{{ 'Всё совпало!' if result.errors == 0 else 'Разберём, что получилось' }}</h2></div>
+      <div class="score"><strong>{{ '%g' | format(result.score) }}%</strong><span>точность записи</span></div>
+    </div>
+    <p>Совпало слов: <strong>{{ result.matches }} из {{ result.reference_count }}</strong>. Расхождений: <strong>{{ result.errors }}</strong>.</p>
+    <h3>Оригинал</h3>
+    <blockquote class="transcript" lang="en">{{ exercise.transcript }}</blockquote>
+    <h3>Сравнение по словам</h3>
+    <p class="field-hint">Слова приведены к единому виду для сравнения. Пропуски, замены и лишние слова отмечены отдельно.</p>
+    <div class="word-comparison" lang="en">
+      {% for item in result.alignment %}
+      <span class="word word-{{ item.kind }}">
+        {% if item.kind == 'match' %}<span class="sr-only" lang="ru">Совпало: </span>{{ item.expected }}
+        {% elif item.kind == 'missing' %}<span class="word-label" lang="ru">Пропуск</span>{{ item.expected }}
+        {% elif item.kind == 'extra' %}<span class="word-label" lang="ru">Лишнее</span>{{ item.heard }}
+        {% else %}<span class="word-label" lang="ru">Замена</span>{{ item.heard }} → {{ item.expected }}{% endif %}
+      </span>
+      {% endfor %}
+    </div>
+    {% if result.differences %}
+    <ul class="difference-list">
+      {% for item in result.differences %}
+      <li>
+        {% if item.kind == 'missing' %}Пропущено <strong lang="en">{{ item.expected }}</strong>.
+        {% elif item.kind == 'extra' %}В оригинале нет слова <strong lang="en">{{ item.heard }}</strong> — оно лишнее в ответе.
+        {% else %}Написано <strong lang="en">{{ item.heard }}</strong>, в оригинале — <strong lang="en">{{ item.expected }}</strong>.{% endif %}
+        {% if item.possible_typo %}<span class="typo-hint">Близкое написание — возможная опечатка. Причину ошибки по тексту определить нельзя.</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    <details class="scoring-rules">
+      <summary>Как считается точность?</summary>
+      <p>Каждый пропуск, замена или лишнее слово — одно расхождение. Точность = 100 × (1 − расхождения / слова оригинала), минимум 0%. Слова считаются после нормализации; опечатки пока учитываются как замены.</p>
+      <p>Игнорируем регистр, пробелы и обычную пунктуацию. Поддерживаем однозначные сокращения (например, don't = do not) и целые числа от 0 до 20, записанные словом или цифрой. Апостроф внутри слова значим: we'll и well — разные слова. Неоднозначные 's и 'd не раскрываем.</p>
+      <p>Это точность записи, а не оценка общего уровня английского или понимания смысла. Сейчас разбор выполняется по правилам; AI-пояснения появятся позже.</p>
+    </details>
+    <a class="back-link retry-link" href="{{ url_for('exercise_page', exercise_id=exercise.id) }}">Повторить без подсказок ↗</a>
+    <p class="field-hint">Пока доступно одно упражнение. История попыток ещё не сохраняется.</p>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

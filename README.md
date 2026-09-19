@@ -2,11 +2,11 @@
 
 An English listening practice app for Russian-speaking software developers preparing for technical interviews.
 
-The planned training loop is simple: listen to a short recording, type the English words you heard, and review the differences with AI-assisted explanations in Russian.
+Listen to a short recording, type the English words you heard, and review the differences. Local AI explanations in Russian are planned as the next step.
 
 ## Project status
 
-**Early development — application foundation.** A local FastAPI application now serves a Russian introduction page and a health endpoint. The AI evaluation script is also available. Audio playback, answer submission, AI integration in the app, and Docker packaging are upcoming.
+**Early development — first playable exercise.** The app includes one Level 1 listening exercise with bundled audio, answer submission, deterministic word comparison, and a transcription accuracy score. Local AI has been evaluated separately; AI feedback in the app, saved history, more exercises, and Docker packaging are upcoming.
 
 This is a learning project focused on Python development, practical AI integration, and a reproducible setup for reviewers.
 
@@ -21,13 +21,16 @@ uv run --locked uvicorn app.main:app --reload --reload-dir app
 
 Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Stop the foreground server with Ctrl+C. If port 8000 is already in use, add `--port 8001` and open that port instead.
 
-`uv sync` creates an isolated `.venv` and installs the versions recorded in `uv.lock`. Initial dependency downloads need internet access. The introduction page uses local assets and does not require Ollama, a model download, or an API key.
+`uv sync` creates an isolated `.venv` and installs the versions recorded in `uv.lock`. Initial dependency downloads need internet access. The current app and bundled audio work locally without Ollama, a model download, an API key, or an external CDN.
+
+Select **Начать тренировку** on the home page, or open [the first exercise](http://127.0.0.1:8000/exercises/intro-01). Replay the recording, type your answer, and submit it to reveal the transcript and comparison. You can correct the answer or start a fresh attempt. Attempts are not saved yet.
 
 Available routes:
 
 | Route | Purpose |
 | --- | --- |
 | `/` | Introduction page with the planned training flow and four levels |
+| `/exercises/intro-01` | GET: listening exercise; POST: compare the submitted answer |
 | `/health` | Application liveness: `{"status":"ok"}`; does not check AI availability |
 | `/docs` | Generated interactive API reference, currently showing the health endpoint |
 
@@ -41,21 +44,50 @@ uv run --locked ruff format --check .
 uv run --locked pytest -q
 ```
 
-The existing automated tests cover the evaluation harness. The initial web page was also checked over HTTP and in Chrome at desktop and narrow viewport sizes. The application was verified locally on Windows with Python 3.12.13; other operating systems and Docker have not yet been verified.
+Automated tests cover word alignment, normalization, scoring, spelling hints, form validation, transcript visibility, escaped user input, audio range requests, and the AI evaluation harness. Audio playback, form submission, correction, and layout were also checked in Chrome at 1440 and 390 pixels. The application was verified locally on Windows with Python 3.12.13; other operating systems and Docker have not yet been verified.
 
 ### Source layout
 
 ```text
 app/
   main.py          # FastAPI routes and template setup
+  comparison.py    # Word alignment, spelling hints, and accuracy
+  exercises.py     # Reviewed exercise data, including server-side transcripts
   templates/       # Jinja2 HTML templates
-  static/          # Local CSS and icon
+  static/          # Local CSS, icon, and bundled audio
 evals/             # Synthetic listening evaluation cases
-scripts/           # Standalone AI evaluation
-tests/             # Offline evaluation harness checks
+scripts/           # AI evaluation and optional audio generation
+tests/             # Comparison, HTTP, and evaluation harness checks
 pyproject.toml     # Dependencies and tool configuration
 uv.lock            # Exact resolved dependency versions
 ```
+
+## How the current comparison works
+
+The app aligns normalized words using Levenshtein edit distance. Each missing, substituted, or extra word costs one edit. Accuracy is `max(0, 100 * (1 - edits / reference_words))`, rounded to one decimal place. Both the denominator and alignment use normalized words. Three edits against a 12-word reference produce 75%; an extra word lowers accuracy even if all reference words are present.
+
+- Case, whitespace, and ordinary punctuation are ignored.
+- Supported unambiguous contractions are expanded, such as `don't` to `do not`. Ambiguous `'s` and `'d` forms remain unchanged. Internal apostrophes matter: `we'll` and `well` are different.
+- Spelled-out integers from zero through twenty match their digit forms. Other number expressions are not interpreted.
+- Replacements of similar words may be marked as **possible spelling mistakes**: both words must have at least four characters, and differ by a single character edit or adjacent transposition. This hint does not reduce the edit penalty and cannot establish the cause of an error.
+- No semantic weighting, synonym matching, or English proficiency rating is performed. Missing `not` currently costs the same single edit as any other missing word. Compound spellings are not broadly treated as equivalent.
+
+The original transcript is not embedded in the initial exercise HTML. It appears after a valid submission. The repository still contains the transcript in source code; this is a learning interface, not an exam security mechanism.
+
+### Bundled audio and optional regeneration
+
+`app/static/audio/intro-01.wav` is a generated recording of the project's original 12-word exercise text. It uses the American English `en_US-ljspeech-high` voice with [Piper 1.8.0](https://github.com/OHF-Voice/piper1-gpl) and is mono, 22,050 Hz, 16-bit PCM, approximately 4.67 seconds long.
+
+The [voice model card](https://huggingface.co/rhasspy/piper-voices/blob/main/en/en_US/ljspeech/high/MODEL_CARD) identifies its training data as the public-domain [LJ Speech dataset](https://keithito.com/LJ-Speech-Dataset/). Piper is a GPL-3.0 tool used for generation; voice weights and the tool itself are not bundled in this repository. The WAV is included so playback requires no speech synthesis installation.
+
+Optional regeneration from the repository root:
+
+```sh
+uv run --locked --group audio python -m piper.download_voices en_US-ljspeech-high --data-dir models/piper
+uv run --locked --group audio python scripts/generate_audio.py --model models/piper/en_US-ljspeech-high.onnx
+```
+
+The optional `audio` dependency group is needed only to regenerate the recording. Model files stay under the ignored `models/` directory. Regeneration overwrites the bundled WAV and can vary slightly between runs; review the recording whenever the exercise text changes.
 
 ## Planned learning experience
 
@@ -110,7 +142,7 @@ Validate the fixtures and run the offline harness tests from the repository root
 
 ```sh
 python scripts/evaluate_local_ai.py --check-only
-python -m unittest discover -s tests -v
+python -m unittest discover -s tests -p test_local_ai_evaluation.py -v
 ```
 
 Use the command for your installed interpreter if it differs, such as `python3` or `python3.12`.
@@ -155,7 +187,7 @@ Manual review accepted some longer quoted spans that failed the strict pair chec
 - [x] Establish the repository foundation and document the intended scope.
 - [x] Evaluate and select a local model, recording quality and latency limitations.
 - [x] Build a minimal Python application and introduction page.
-- [ ] Complete one exercise with audio playback and text comparison.
+- [x] Complete one exercise with audio playback and text comparison.
 - [ ] Evaluate explanations of precomputed differences; integrate local AI feedback and handle provider failures.
 - [ ] Expand to 24 exercises and save attempt history.
 - [ ] Verify Docker setup and add automated checks and screenshots.

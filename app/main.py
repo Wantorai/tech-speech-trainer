@@ -1,11 +1,15 @@
 """Application entry point: uv run uvicorn app.main:app --reload."""
 
 from pathlib import Path
+from typing import Annotated
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+
+from app.comparison import compare, normalize
+from app.exercises import FIRST_EXERCISE, get_exercise
 
 APP_DIR = Path(__file__).resolve().parent
 
@@ -42,7 +46,52 @@ async def home(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="home.html",
-        context={"levels": LEVELS},
+        context={"levels": LEVELS, "first_exercise_id": FIRST_EXERCISE.id},
+    )
+
+
+@app.get(
+    "/exercises/{exercise_id}", response_class=HTMLResponse, include_in_schema=False
+)
+async def exercise_page(request: Request, exercise_id: str):
+    exercise = get_exercise(exercise_id)
+    if exercise is None:
+        raise HTTPException(status_code=404, detail="Упражнение не найдено")
+    return templates.TemplateResponse(
+        request=request,
+        name="exercise.html",
+        context={"exercise": exercise, "answer": "", "result": None, "error": None},
+    )
+
+
+@app.post(
+    "/exercises/{exercise_id}", response_class=HTMLResponse, include_in_schema=False
+)
+async def check_answer(
+    request: Request,
+    exercise_id: str,
+    answer: Annotated[str, Form()] = "",
+):
+    exercise = get_exercise(exercise_id)
+    if exercise is None:
+        raise HTTPException(status_code=404, detail="Упражнение не найдено")
+    error = None
+    if len(answer) > 2000:
+        error = "Ответ слишком длинный. Максимум — 2000 символов."
+    elif not normalize(answer):
+        error = "Напиши хотя бы одно услышанное слово, затем нажми «Проверить»."
+    result = None if error else compare(exercise.transcript, answer)
+    return templates.TemplateResponse(
+        request=request,
+        name="exercise.html",
+        context={
+            "exercise": exercise,
+            "answer": answer[:2000],
+            "result": result,
+            "error": error,
+        },
+        status_code=422 if error else 200,
+        headers={"Cache-Control": "no-store"},
     )
 
 
