@@ -194,6 +194,8 @@ Manual review accepted some longer quoted spans that failed the strict pair chec
 
 ## Development notes
 
+Every Python function and method, including tests and helper scripts, should have a short English docstring describing its purpose. Update the description when its behavior changes.
+
 The public project overview and setup instructions are maintained in this English README. Personal learning notes are written in Russian under `docs/`, which is intentionally excluded from version control.
 
 Development proceeds in small, reviewable steps. Each step should have a clear outcome, an appropriate verification, and an explanatory commit.

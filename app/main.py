@@ -43,6 +43,7 @@ LEVELS = (
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def home(request: Request):
+    """Render the introduction page with levels and the first exercise link."""
     return templates.TemplateResponse(
         request=request,
         name="home.html",
@@ -54,6 +55,7 @@ async def home(request: Request):
     "/exercises/{exercise_id}", response_class=HTMLResponse, include_in_schema=False
 )
 async def exercise_page(request: Request, exercise_id: str):
+    """Render an exercise form without revealing the original transcript."""
     exercise = get_exercise(exercise_id)
     if exercise is None:
         raise HTTPException(status_code=404, detail="Упражнение не найдено")
@@ -72,6 +74,7 @@ async def check_answer(
     exercise_id: str,
     answer: Annotated[str, Form()] = "",
 ):
+    """Validate the answer and render word comparison results or form errors."""
     exercise = get_exercise(exercise_id)
     if exercise is None:
         raise HTTPException(status_code=404, detail="Упражнение не найдено")

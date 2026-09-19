@@ -13,11 +13,13 @@ URL = f"/exercises/{FIRST_EXERCISE.id}"
 
 @pytest.fixture
 def client():
+    """Provide an in-process HTTP client within the application lifespan."""
     with TestClient(app) as client:
         yield client
 
 
 def test_original_is_not_rendered_before_submission(client):
+    """Keep the transcript hidden until the learner submits a valid answer."""
     response = client.get(URL)
     assert response.status_code == 200
     assert FIRST_EXERCISE.transcript not in response.text
@@ -26,6 +28,7 @@ def test_original_is_not_rendered_before_submission(client):
 
 
 def test_correct_answer_reveals_original_and_perfect_score(client):
+    """Reveal a perfect result after submission and hide it on a fresh visit."""
     response = client.post(URL, data={"answer": FIRST_EXERCISE.transcript})
     assert response.status_code == 200
     assert "100%" in response.text
@@ -37,6 +40,7 @@ def test_correct_answer_reveals_original_and_perfect_score(client):
 
 @pytest.mark.parametrize("answer", ["", " \n\t", "...?!", "word " * 401])
 def test_invalid_answer_shows_russian_error_without_revealing_original(client, answer):
+    """Reject invalid answers with a Russian error and keep the transcript hidden."""
     response = client.post(URL, data={"answer": answer})
     assert response.status_code == 422
     assert 'role="alert"' in response.text
@@ -44,6 +48,7 @@ def test_invalid_answer_shows_russian_error_without_revealing_original(client, a
 
 
 def test_user_markup_is_escaped_in_the_answer_and_feedback(client):
+    """Ensure submitted HTML is displayed as text rather than executable markup."""
     response = client.post(URL, data={"answer": '<script>alert("hello")</script>'})
     assert response.status_code == 200
     assert "<script>" not in response.text
@@ -51,6 +56,7 @@ def test_user_markup_is_escaped_in_the_answer_and_feedback(client):
 
 
 def test_unknown_exercise_is_not_silently_replaced(client):
+    """Return HTTP 404 for unknown exercise IDs on both GET and POST."""
     assert client.get("/exercises/missing").status_code == 404
     assert (
         client.post("/exercises/missing", data={"answer": "anything"}).status_code
@@ -59,6 +65,7 @@ def test_unknown_exercise_is_not_silently_replaced(client):
 
 
 def test_audio_is_bundled_and_supports_seeking(client):
+    """Check the bundled WAV format and byte range responses used for seeking."""
     audio_path = APP_DIR / "static" / FIRST_EXERCISE.audio_file
     with wave.open(str(audio_path), "rb") as audio:
         assert 2 < audio.getnframes() / audio.getframerate() < 20
@@ -73,6 +80,7 @@ def test_audio_is_bundled_and_supports_seeking(client):
 
 
 def test_templates_and_assets_do_not_depend_on_working_directory(client, monkeypatch):
+    """Serve templates and static assets even after the working directory changes."""
     monkeypatch.chdir(APP_DIR / "static")
     assert client.get(URL).status_code == 200
     assert client.get("/static/styles.css").status_code == 200

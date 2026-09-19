@@ -65,6 +65,7 @@ HTTP = build_opener(ProxyHandler({}))
 
 
 def api(path, payload=None, timeout=120):
+    """Send a local Ollama request and decode its JSON response."""
     data = None if payload is None else json.dumps(payload).encode("utf-8")
     request = Request(
         BASE_URL + path, data=data, headers={"Content-Type": "application/json"}
@@ -74,6 +75,7 @@ def api(path, payload=None, timeout=120):
 
 
 def normalized(text):
+    """Normalize case, punctuation, and spacing for evaluation comparisons."""
     return " ".join(re.findall(r"[\w']+", text.lower()))
 
 
@@ -102,6 +104,7 @@ def validate_feedback(feedback):
 
 
 def evaluate_case(case, model, timeout):
+    """Evaluate one case and record feedback, timing, and validation failures."""
     record = {"case_id": case["id"], "expected_pairs": case["expected_pairs"]}
     if not case["answer"].strip():
         return {**record, "status": "rejected_empty", "request_sent": False}
@@ -155,6 +158,7 @@ def evaluate_case(case, model, timeout):
 
 
 def main():
+    """Validate fixtures or run selected model cases and save evaluation results."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", default="qwen3:4b")
     parser.add_argument(

@@ -12,6 +12,7 @@ from app.exercises import FIRST_EXERCISE  # noqa: E402
 
 
 def main():
+    """Generate the first exercise WAV using the supplied Piper voice model."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--model", type=Path, required=True, help="Path to a Piper ONNX voice"

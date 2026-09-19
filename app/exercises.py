@@ -26,4 +26,5 @@ FIRST_EXERCISE = Exercise(
 
 
 def get_exercise(exercise_id: str) -> Exercise | None:
+    """Return the exercise matching the ID, or None if it is unknown."""
     return FIRST_EXERCISE if exercise_id == FIRST_EXERCISE.id else None

@@ -8,6 +8,7 @@ from scripts.evaluate_local_ai import evaluate_case
 
 class EvaluationTests(unittest.TestCase):
     def setUp(self):
+        """Prepare an evaluation case with a missing negation for each test."""
         self.case = {
             "id": "negation",
             "transcript": "We do not deploy on Friday.",
@@ -18,6 +19,7 @@ class EvaluationTests(unittest.TestCase):
 
     @patch("scripts.evaluate_local_ai.api")
     def test_blank_answer_never_calls_model(self, api):
+        """Reject empty answers locally without sending a model request."""
         for answer in ("", " \n\t "):
             result = evaluate_case({**self.case, "answer": answer}, "test-model", 1)
             self.assertEqual(result["status"], "rejected_empty")
@@ -26,6 +28,7 @@ class EvaluationTests(unittest.TestCase):
 
     @patch("scripts.evaluate_local_ai.api")
     def test_expected_answers_are_not_sent_to_model(self, api):
+        """Keep expected results and review notes out of the model prompt."""
         api.return_value = {
             "done": True,
             "done_reason": "stop",
@@ -44,6 +47,7 @@ class EvaluationTests(unittest.TestCase):
 
     @patch("scripts.evaluate_local_ai.api")
     def test_truncated_response_is_not_accepted(self, api):
+        """Record an error when the model stops before completing its response."""
         api.return_value = {
             "done": True,
             "done_reason": "length",
@@ -55,6 +59,7 @@ class EvaluationTests(unittest.TestCase):
 
     @patch("scripts.evaluate_local_ai.api")
     def test_invalid_contract_is_not_accepted(self, api):
+        """Reject feedback whose fields violate the expected response contract."""
         api.return_value = {
             "done": True,
             "done_reason": "stop",
@@ -65,6 +70,7 @@ class EvaluationTests(unittest.TestCase):
 
     @patch("scripts.evaluate_local_ai.api")
     def test_correct_json_can_still_miss_a_real_error(self, api):
+        """Distinguish valid response structure from correct error detection."""
         api.return_value = {
             "done": True,
             "done_reason": "stop",
@@ -76,6 +82,7 @@ class EvaluationTests(unittest.TestCase):
 
     @patch("scripts.evaluate_local_ai.api", side_effect=TimeoutError("Timed out"))
     def test_timeout_is_recorded_without_automatic_retry(self, api):
+        """Record a timed-out request once without retrying the model call."""
         result = evaluate_case(self.case, "test-model", 1)
         self.assertEqual(result["status"], "error")
         self.assertIn("elapsed_seconds", result)

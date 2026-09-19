@@ -78,10 +78,12 @@ class Comparison:
 
     @property
     def matches(self) -> int:
+        """Count matching words in the normalized alignment."""
         return sum(item.kind == "match" for item in self.alignment)
 
     @property
     def differences(self) -> tuple[Difference, ...]:
+        """Return substitutions, missing words, and extra words in order."""
         return tuple(item for item in self.alignment if item.kind != "match")
 
 
@@ -117,6 +119,7 @@ def _possible_typo(expected: str, heard: str) -> bool:
 
 
 def compare(transcript: str, answer: str) -> Comparison:
+    """Align normalized words and calculate differences and accuracy."""
     reference, written = normalize(transcript), normalize(answer)
     if not reference:
         raise ValueError("The reference must contain words")
