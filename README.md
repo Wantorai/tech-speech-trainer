@@ -6,7 +6,7 @@ Listen to a short recording, type the English words you heard, and review the di
 
 ## Project status
 
-**Early development — first exercise with an experimental AI tutor.** The app includes one Level 1 exercise with bundled audio, Russian translation, deterministic comparison and explanations, an accuracy score, teacher feedback from local Ollama, and an ephemeral follow-up chat. Saved history, more exercises, generated exercises, and Docker packaging are upcoming.
+**Early development — six exercises with an experimental AI tutor.** The app includes a filterable catalog across three topics and two levels, bundled audio and Russian translations, deterministic comparison and explanations, an accuracy score, teacher feedback from local Ollama, and an ephemeral follow-up chat. Saved history, expansion to 24 exercises, generated exercises, and Docker packaging are upcoming.
 
 This is a learning project focused on Python development, practical AI integration, and a reproducible setup for reviewers.
 
@@ -23,7 +23,9 @@ Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Stop the foreground server 
 
 `uv sync` creates an isolated `.venv` and installs the versions recorded in `uv.lock`. Initial dependency downloads need internet access. The current app and bundled audio work locally without Ollama, a model download, an API key, or an external CDN.
 
-Select **Начать тренировку** on the home page, or open [the first exercise](http://127.0.0.1:8000/exercises/intro-01). Replay the recording, type your answer, and submit it to reveal the transcript, Russian translation, and comparison. Each exercise stores a prepared translation; displaying it requires no AI request. The translation appears after a valid submission, even if the answer is incorrect, and is hidden again on a fresh attempt. You can correct the answer or start a fresh attempt. Attempts are not saved yet.
+Select **Начать тренировку** for the first exercise, or **Выбрать упражнение** to open [the catalog](http://127.0.0.1:8000/exercises). Filter by topic and level, listen, type your answer, and submit it to reveal the transcript, prepared Russian translation, and comparison. Translation requires no AI request and appears after any valid submission. **Следующее упражнение** moves through catalog order, independently of filters; the final exercise links back to the catalog. A new exercise starts with an empty answer and chat. Attempts are not saved yet.
+
+The starter catalog contains one Level 1 exercise (10–15 words) and one Level 2 exercise (two sentences, 20–30 words) in each topic: introductions and responsibilities, projects and personal contributions, and teamwork. Levels 3 and 4 are planned. Audio and answer text are bundled, so the catalog is usable without a model running.
 
 After any valid answer, including a perfect match, select **Спросить AI** (Ask AI) below the comparison. Start Ollama and install `qwen3:4b` using the instructions below. The tutor explains relevant grammar and meaning, suggests a listening focus, and gives a related English example with a Russian translation. Empty optional sections are omitted. Feedback loads separately while the score and prepared translation remain visible. JavaScript is required only for this optional button. Failures leave the normal result intact. The tutor can make factual mistakes; it does not hear the recording or assess the learner's pronunciation.
 
@@ -34,9 +36,10 @@ Available routes:
 | Route | Purpose |
 | --- | --- |
 | `/` | Introduction page with the planned training flow and four levels |
-| `/exercises/intro-01` | GET: listening exercise; POST: compare the submitted answer |
-| `/exercises/intro-01/ai` | POST: request optional teacher analysis for the submitted answer |
-| `/exercises/intro-01/ai/chat` | POST: answer a contextual follow-up without saving a session |
+| `/exercises` | GET: catalog; optional `topic` and `level` filters |
+| `/exercises/{exercise_id}` | GET: listening exercise; POST: compare the submitted answer |
+| `/exercises/{exercise_id}/ai` | POST: request optional teacher analysis for the submitted answer |
+| `/exercises/{exercise_id}/ai/chat` | POST: answer a contextual follow-up without saving a session |
 | `/health` | Application liveness: `{"status":"ok"}`; does not check AI availability |
 | `/docs` | Generated interactive API reference, currently showing the health endpoint |
 
@@ -58,7 +61,7 @@ Automated tests cover word alignment, normalization, scoring, spelling hints, fo
 app/
   main.py          # FastAPI routes and template setup
   comparison.py    # Word alignment, spelling hints, and accuracy
-  exercises.py     # Reviewed exercise data, including server-side transcripts
+  exercises.py     # Ordered catalog, translations, transcripts, and navigation
   templates/       # Jinja2 HTML templates
   static/          # Local CSS, icon, and bundled audio
 evals/             # Synthetic listening evaluation cases
@@ -82,7 +85,7 @@ The original transcript is not embedded in the initial exercise HTML. It appears
 
 ### Bundled audio and optional regeneration
 
-`app/static/audio/intro-01.wav` is a generated recording of the project's original 12-word exercise text. It uses the American English `en_US-ljspeech-high` voice with [Piper 1.8.0](https://github.com/OHF-Voice/piper1-gpl) and is mono, 22,050 Hz, 16-bit PCM, approximately 4.67 seconds long.
+The six WAV files in `app/static/audio/` are generated recordings of texts authored for this project. They use the American English `en_US-ljspeech-high` voice with [Piper 1.8.0](https://github.com/OHF-Voice/piper1-gpl), in mono, 22,050 Hz, 16-bit PCM. Recordings range from approximately 4.62 to 9.64 seconds; `intro-01.wav` remains the original 4.67-second recording.
 
 The [voice model card](https://huggingface.co/rhasspy/piper-voices/blob/main/en/en_US/ljspeech/high/MODEL_CARD) identifies its training data as the public-domain [LJ Speech dataset](https://keithito.com/LJ-Speech-Dataset/). Piper is a GPL-3.0 tool used for generation; voice weights and the tool itself are not bundled in this repository. The WAV is included so playback requires no speech synthesis installation.
 
@@ -90,10 +93,10 @@ Optional regeneration from the repository root:
 
 ```sh
 uv run --locked --group audio python -m piper.download_voices en_US-ljspeech-high --data-dir models/piper
-uv run --locked --group audio python scripts/generate_audio.py --model models/piper/en_US-ljspeech-high.onnx
+uv run --locked --group audio python scripts/generate_audio.py --model models/piper/en_US-ljspeech-high.onnx --all
 ```
 
-The optional `audio` dependency group is needed only to regenerate the recording. Model files stay under the ignored `models/` directory. Regeneration overwrites the bundled WAV and can vary slightly between runs; review the recording whenever the exercise text changes.
+The optional `audio` dependency group is needed only for generation. Model files stay under the ignored `models/` directory. Existing recordings are skipped by default; add `--overwrite` to regenerate them. Use `--exercise team-02` (repeatable) instead of `--all` to select IDs. With neither option, only the first exercise is selected. Regeneration can vary slightly between runs; review the recording whenever the exercise text changes.
 
 ## Planned learning experience
 
@@ -246,6 +249,7 @@ Later milestones add saved attempts and AI-generated exercises by topic and leve
 - [ ] Collect feedback from real learner practice and improve the tutor.
 - [ ] Expand to 24 exercises and save attempt history.
 - [x] Add ephemeral follow-up questions tied to the current exercise and attempt.
+- [x] Add a six-exercise catalog with topic/level filters and next-exercise navigation.
 - [ ] Generate, validate, synthesize, and persist new exercises by topic and level.
 - [ ] Verify Docker setup and add automated checks and screenshots.
 

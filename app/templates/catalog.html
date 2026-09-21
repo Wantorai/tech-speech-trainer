@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Каталог упражнений — Tech Speech Trainer{% endblock %}
+{% block content %}
+<div class="exercise-page">
+  <a class="back-link" href="{{ url_for('home') }}">← На главную</a>
+  <div class="exercise-heading">
+    <p class="eyebrow">ПРАКТИКА ДЛЯ ТЕХНИЧЕСКОГО ИНТЕРВЬЮ</p>
+    <h1>Выбери упражнение</h1>
+    <p>Короткие фразы и вопросы о работе. Всего заданий: {{ total }}. Уровни 3 и 4 добавим позже.</p>
+  </div>
+  <form class="catalog-filters" action="{{ url_for('catalog') }}" method="get">
+    <label>Тема
+      <select name="topic">
+        <option value="">Все темы</option>
+        {% if selected_topic and selected_topic not in topics %}<option value="{{ selected_topic }}" selected>Неизвестная тема</option>{% endif %}
+        {% for topic in topics %}<option value="{{ topic }}" {% if selected_topic == topic %}selected{% endif %}>{{ topic }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Уровень
+      <select name="level">
+        <option value="" {% if selected_level is none %}selected{% endif %}>Все уровни</option>
+        {% if selected_level is not none and selected_level not in levels %}<option value="{{ selected_level }}" selected>Нет заданий этого уровня</option>{% endif %}
+        {% for level in levels %}<option value="{{ level }}" {% if selected_level == level %}selected{% endif %}>Уровень {{ level }}</option>{% endfor %}
+      </select>
+    </label>
+    <button class="button" type="submit">Показать</button>
+    <a class="back-link" href="{{ url_for('catalog') }}">Сбросить</a>
+  </form>
+  <p class="field-hint">Найдено: {{ exercises | length }}. Оригинал и перевод откроются после твоего ответа.</p>
+  <div class="catalog-grid">
+    {% for exercise in exercises %}
+    <article class="level-card">
+      <span class="level-tag">Уровень {{ exercise.level }}</span>
+      <h2>{{ exercise.title }}</h2>
+      <p>{{ exercise.topic }}</p>
+      <a class="back-link" href="{{ url_for('exercise_page', exercise_id=exercise.id) }}">Открыть упражнение →</a>
+    </article>
+    {% else %}<p>По этим фильтрам упражнений пока нет. Попробуй другую тему или уровень.</p>{% endfor %}
+  </div>
+  <p class="field-hint">Попытки пока не сохраняются. Мини-чат очищается при переходе к другому заданию.</p>
+</div>
+{% endblock %}

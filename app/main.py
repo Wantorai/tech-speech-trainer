@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.comparison import normalize
-from app.exercises import FIRST_EXERCISE, get_exercise
+from app.exercises import EXERCISES, FIRST_EXERCISE, get_exercise, get_next_exercise
 from app.feedback import build_feedback
 from app.tutor import ask_tutor
 from app.tutor_chat import ask_followup, validate_chat
@@ -55,11 +55,46 @@ LEVELS = (
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def home(request: Request):
-    """Render the introduction page with levels and the first exercise link."""
+    """Render the introduction with training levels and catalog entry points."""
     return templates.TemplateResponse(
         request=request,
         name="home.html",
-        context={"levels": LEVELS, "first_exercise_id": FIRST_EXERCISE.id},
+        context={
+            "levels": LEVELS,
+            "first_exercise_id": FIRST_EXERCISE.id,
+            "exercise_count": len(EXERCISES),
+        },
+    )
+
+
+@app.get("/exercises", response_class=HTMLResponse, include_in_schema=False)
+async def catalog(request: Request, topic: str = "", level: str = ""):
+    """Render available exercises filtered by topic and level without answer text."""
+    topics = tuple(dict.fromkeys(exercise.topic for exercise in EXERCISES))
+    try:
+        selected_level = int(level) if level else None
+    except ValueError:
+        raise HTTPException(
+            status_code=422, detail="Уровень должен быть числом."
+        ) from None
+    levels = sorted({exercise.level for exercise in EXERCISES})
+    selected = [
+        exercise
+        for exercise in EXERCISES
+        if (not topic or exercise.topic == topic)
+        and (selected_level is None or exercise.level == selected_level)
+    ]
+    return templates.TemplateResponse(
+        request=request,
+        name="catalog.html",
+        context={
+            "exercises": selected,
+            "topics": topics,
+            "levels": levels,
+            "selected_topic": topic,
+            "selected_level": selected_level,
+            "total": len(EXERCISES),
+        },
     )
 
 
@@ -106,6 +141,7 @@ async def check_answer(
             "result": result,
             "feedback": feedback,
             "ai_available": result is not None,
+            "next_exercise": get_next_exercise(exercise.id),
             "error": error,
         },
         status_code=422 if error else 200,

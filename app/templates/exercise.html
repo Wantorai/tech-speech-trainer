@@ -2,7 +2,7 @@
 {% block title %}{{ exercise.title }} — Tech Speech Trainer{% endblock %}
 {% block content %}
 <div class="exercise-page">
-  <a class="back-link" href="{{ url_for('home') }}">← На главную</a>
+  <a class="back-link" href="{{ url_for('catalog') }}">← К упражнениям</a>
   <div class="exercise-heading">
     <p class="eyebrow">{{ exercise.topic }} · Уровень {{ exercise.level }}</p>
     <h1>{{ exercise.title }}</h1>
@@ -86,7 +86,16 @@
       <p>Это точность записи, а не оценка общего уровня английского или понимания смысла. Расхождения и пояснения к ним формирует Python. AI отдельно разбирает ответ и объясняет английский; он не меняет оценку и не оценивает твоё произношение по письменному ответу.</p>
     </details>
     <a class="back-link retry-link" href="{{ url_for('exercise_page', exercise_id=exercise.id) }}">Повторить без подсказок ↗</a>
-    <p class="field-hint">Пока доступно одно упражнение. История попыток ещё не сохраняется.</p>
+    <div class="exercise-navigation">
+      {% if next_exercise %}
+      <a class="button" href="{{ url_for('exercise_page', exercise_id=next_exercise.id) }}">Следующее упражнение →</a>
+      <p class="field-hint">{{ next_exercise.title }} · Уровень {{ next_exercise.level }}. Переход идёт по порядку каталога.</p>
+      {% else %}
+      <p>Это последнее упражнение в текущем каталоге.</p>
+      <a class="button" href="{{ url_for('catalog') }}">Вернуться к упражнениям →</a>
+      {% endif %}
+    </div>
+    <p class="field-hint">История попыток ещё не сохраняется. При переходе мини-чат очищается.</p>
   </section>
   {% endif %}
 </div>
