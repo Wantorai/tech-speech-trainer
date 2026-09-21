@@ -218,12 +218,19 @@ AI is opt-in. With `--ai`, local Ollama receives only the reference transcript a
 
 ## Roadmap
 
+The next milestone expands the current vocabulary helper into an experimental English tutor behind an **Ask AI** button. It will use the transcript, learner answer, and deterministic differences to explain relevant grammar, meaning changes, and listening cues, including useful explanations for correct answers. Python will continue to own scoring. Text-based listening tips are not an assessment of the learner's pronunciation.
+
+Later milestones add follow-up questions and AI-generated exercises by topic and level. Generated text and Russian translation will be checked, voiced with Piper, and saved before an exercise becomes playable. The 24 reviewed exercises remain the starter catalog and fallback. We will start with prompting and examples, without custom model training; model quality will be assessed in real practice. These tutor and generation features are planned, not yet implemented.
+
 - [x] Establish the repository foundation and document the intended scope.
 - [x] Evaluate and select a local model, recording quality and latency limitations.
 - [x] Build a minimal Python application and introduction page.
 - [x] Complete one exercise with audio playback and text comparison.
 - [x] Evaluate explanations; integrate optional local AI vocabulary notes and handle provider failures.
+- [ ] Add full English tutor feedback through Ask AI and evaluate it on new examples and real practice.
 - [ ] Expand to 24 exercises and save attempt history.
+- [ ] Add follow-up questions tied to the current exercise and attempt.
+- [ ] Generate, validate, synthesize, and persist new exercises by topic and level.
 - [ ] Verify Docker setup and add automated checks and screenshots.
 
 ## Development notes
