@@ -202,6 +202,17 @@ The experiment supports keeping AI commentary supplementary. Critical meaning ch
 
 Six additional requests repeated negation, spelling, and two-error cases twice. All passed structural validation; manual review accepted 3/6. One negation explanation improved on repetition while the other remained confusing. Fixed sampling settings did not guarantee identical text. These repeats are reported separately from the 11-case results.
 
+## Preview the feedback module
+
+The feedback module (`app.feedback`) now provides deterministic edit explanations and optional Ollama vocabulary notes. It is available through a CLI preview; the web exercise has not been connected to it yet:
+
+```sh
+python -m scripts.preview_feedback --answer "I work as a developer and build applications for small businesses."
+python -m scripts.preview_feedback --answer "I work as a developer and build applications for small businesses." --ai
+```
+
+AI is opt-in. With `--ai`, local Ollama receives only the reference transcript and up to three distinct reference words, never the learner answer or score. Negation is explained by Python. If Ollama is unavailable, times out, or returns invalid data, the comparison and deterministic explanations remain available. The new vocabulary prompt has not undergone the earlier explanation benchmark; structurally valid notes can still be inaccurate. See the local Ollama setup above before requesting AI notes.
+
 ## Roadmap
 
 - [x] Establish the repository foundation and document the intended scope.
