@@ -1,6 +1,7 @@
 """Catalog, navigation, audio, and exercise-isolation checks."""
 
 import wave
+from collections import Counter
 from html import unescape
 from unittest.mock import patch
 
@@ -39,7 +40,10 @@ def test_catalog_filters_accept_empty_values_and_combine_topic_with_level(client
         assert (f"/exercises/{exercise.id}" in response.text) == (
             exercise.topic == topic and exercise.level == 2
         )
-    assert "упражнений пока нет" in client.get("/exercises?level=4").text
+    assert "упражнений пока нет" in client.get("/exercises?level=5").text
+    for level in range(1, 5):
+        page = client.get("/exercises", params={"level": level})
+        assert sum(f"/exercises/{item.id}" in page.text for item in EXERCISES) == 6
     assert "упражнений пока нет" in client.get("/exercises?topic=unknown").text
     assert client.get("/exercises?level=abc").status_code == 422
 
@@ -65,7 +69,7 @@ def test_each_exercise_has_its_own_answer_translation_and_audio(client, exercise
         assert audio.getnchannels() == 1
         assert audio.getsampwidth() == 2
         assert audio.getframerate() == 22050
-        assert 2 < audio.getnframes() / audio.getframerate() < 30
+        assert 2 < audio.getnframes() / audio.getframerate() < 60
         assert any(audio.readframes(audio.getnframes()))
     audio_response = client.get(
         "/static/" + exercise.audio_file, headers={"Range": "bytes=0-43"}
@@ -74,7 +78,7 @@ def test_each_exercise_has_its_own_answer_translation_and_audio(client, exercise
     assert audio_response.content[:4] == b"RIFF"
 
 
-def test_navigation_stops_at_catalog_end_without_claiming_saved_progress(client):
+def test_navigation_stops_at_catalog_end(client):
     """Offer the next catalog item after an answer and finish at the catalog link."""
     for index, exercise in enumerate(EXERCISES):
         response = client.post(
@@ -112,8 +116,15 @@ def test_catalog_ids_audio_and_level_lengths_are_consistent():
     """Keep starter records unique and within the promised level lengths."""
     assert len({exercise.id for exercise in EXERCISES}) == len(EXERCISES)
     assert len({exercise.audio_file for exercise in EXERCISES}) == len(EXERCISES)
+    combinations = Counter((item.topic, item.level) for item in EXERCISES)
+    assert len(EXERCISES) == 24
+    assert len(combinations) == 12
+    assert set(combinations.values()) == {2}
     for exercise in EXERCISES:
         count = len(exercise.transcript.split())
-        low, high = {1: (10, 15), 2: (20, 30)}[exercise.level]
+        low, high = {1: (10, 15), 2: (20, 30), 3: (40, 60), 4: (60, 85)}[exercise.level]
         assert low <= count <= high
-        assert sum(exercise.transcript.count(mark) for mark in ".!?") == exercise.level
+        sentences = sum(exercise.transcript.count(mark) for mark in ".!?")
+        assert sentences in {1: (1,), 2: (2,), 3: (3, 4), 4: (3,)}[exercise.level]
+        if exercise.level == 4:
+            assert exercise.transcript.count("?") == 1

@@ -6,7 +6,7 @@ Listen to a short recording, type the English words you heard, and review the di
 
 ## Project status
 
-**Early development — six exercises with an experimental AI tutor.** The app includes a filterable catalog across three topics and two levels, bundled audio and Russian translations, deterministic comparison and explanations, an accuracy score, teacher feedback from local Ollama, and an ephemeral follow-up chat. Local SQLite attempt history is available; expansion to 24 exercises, generated exercises, and Docker packaging are upcoming.
+**Early development — 24 exercises with an experimental AI tutor.** The app includes a filterable catalog across three topics and four levels, bundled audio and Russian translations, deterministic comparison and explanations, an accuracy score, teacher feedback from local Ollama, and an ephemeral follow-up chat. Local SQLite attempt history is available; generated exercises and Docker packaging are upcoming.
 
 This is a learning project focused on Python development, practical AI integration, and a reproducible setup for reviewers.
 
@@ -25,7 +25,7 @@ Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Stop the foreground server 
 
 Select **Начать тренировку** for the first exercise, or **Выбрать упражнение** to open [the catalog](http://127.0.0.1:8000/exercises). Filter by topic and level, listen, type your answer, and submit it to reveal the transcript, prepared Russian translation, and comparison. Translation requires no AI request and appears after any valid submission. **Следующее упражнение** moves through catalog order, independently of filters; the final exercise links back to the catalog. A new exercise starts with an empty answer and chat. Valid submissions are saved automatically. Open **История попыток** to review earlier answers and scores.
 
-The starter catalog contains one Level 1 exercise (10–15 words) and one Level 2 exercise (two sentences, 20–30 words) in each topic: introductions and responsibilities, projects and personal contributions, and teamwork. Levels 3 and 4 are planned. Audio and answer text are bundled, so the catalog is usable without a model running.
+The starter catalog contains 24 exercises: two exercises at each of four levels in each topic — introductions and responsibilities, projects and personal contributions, and teamwork. Catalog order groups each topic from Level 1 to Level 4. Existing exercise IDs and recordings are preserved. Audio and answer text are bundled, so the catalog is usable without a model running.
 
 After any valid answer, including a perfect match, select **Спросить AI** (Ask AI) below the comparison. Start Ollama and install `qwen3:4b` using the instructions below. The tutor explains relevant grammar and meaning, suggests a listening focus, and gives a related English example with a Russian translation. Empty optional sections are omitted. Feedback loads separately while the score and prepared translation remain visible. JavaScript is required only for this optional button. Failures leave the normal result intact. The tutor can make factual mistakes; it does not hear the recording or assess the learner's pronunciation.
 
@@ -85,9 +85,9 @@ The original transcript is not embedded in the initial exercise HTML. It appears
 
 ### Bundled audio and optional regeneration
 
-The six WAV files in `app/static/audio/` are generated recordings of texts authored for this project. They use the American English `en_US-ljspeech-high` voice with [Piper 1.8.0](https://github.com/OHF-Voice/piper1-gpl), in mono, 22,050 Hz, 16-bit PCM. Recordings range from approximately 4.62 to 9.64 seconds; `intro-01.wav` remains the original 4.67-second recording.
+The 24 WAV files in `app/static/audio/` are generated recordings of texts authored for this project. They use the American English `en_US-ljspeech-high` voice with [Piper 1.8.0](https://github.com/OHF-Voice/piper1-gpl), in mono, 22,050 Hz, 16-bit PCM. Recordings range from approximately 4.62 to 23.64 seconds; `intro-01.wav` remains the original 4.67-second recording.
 
-The [voice model card](https://huggingface.co/rhasspy/piper-voices/blob/main/en/en_US/ljspeech/high/MODEL_CARD) identifies its training data as the public-domain [LJ Speech dataset](https://keithito.com/LJ-Speech-Dataset/). Piper is a GPL-3.0 tool used for generation; voice weights and the tool itself are not bundled in this repository. The WAV is included so playback requires no speech synthesis installation.
+The [voice model card](https://huggingface.co/rhasspy/piper-voices/blob/main/en/en_US/ljspeech/high/MODEL_CARD) identifies its training data as the public-domain [LJ Speech dataset](https://keithito.com/LJ-Speech-Dataset/). Piper is a GPL-3.0 tool used for generation; voice weights and the tool itself are not bundled in this repository. The WAV files are included so playback requires no speech synthesis installation.
 
 Optional regeneration from the repository root:
 
@@ -113,7 +113,7 @@ Text comparison will provide a reproducible measure of transcription accuracy. A
 | 1 | One sentence, 10–15 words |
 | 2 | Two sentences, 20–30 words |
 | 3 | Three or four sentences, 40–60 words |
-| 4 | An extended interview question with a follow-up and an additional condition |
+| 4 | 60–85 words: an extended interview question, a clarification, and an additional condition (three sentences in this catalog) |
 
 Initial topics will cover introductions and responsibilities, previous projects and personal contributions, and teamwork. Later topics will include debugging, testing, APIs, databases, releases, and technical decisions.
 
@@ -238,7 +238,7 @@ The final `tutor-v2` prompt returned structurally valid responses for all four d
 
 The **Ask AI** button now provides experimental English tutor feedback, including explanations for correct answers. The next quality step is feedback from real learner practice. Python continues to own scoring. Text-based listening tips are not an assessment of the learner's pronunciation.
 
-Later milestones add AI-generated exercises by topic and level. Generated text and Russian translation will be checked, voiced with Piper, and saved before an exercise becomes playable. The planned 24 reviewed exercises remain the starter catalog and fallback. We start with prompting and examples, without custom model training. Follow-up chat is available with temporary context; exercise generation is not yet implemented.
+Later milestones add AI-generated exercises by topic and level. Generated text and Russian translation will be checked, voiced with Piper, and saved before an exercise becomes playable. The 24 prepared exercises remain the starter catalog and fallback. We start with prompting and examples, without custom model training. Follow-up chat is available with temporary context; exercise generation is not yet implemented.
 
 - [x] Establish the repository foundation and document the intended scope.
 - [x] Evaluate and select a local model, recording quality and latency limitations.
@@ -248,9 +248,9 @@ Later milestones add AI-generated exercises by topic and level. Generated text a
 - [x] Add full English tutor feedback through Ask AI and evaluate it on new synthetic examples.
 - [ ] Collect feedback from real learner practice and improve the tutor.
 - [x] Save attempt snapshots in SQLite and browse local history.
-- [ ] Expand the reviewed catalog to 24 exercises.
+- [x] Expand the prepared catalog to 24 exercises across all four levels.
 - [x] Add ephemeral follow-up questions tied to the current exercise and attempt.
-- [x] Add a six-exercise catalog with topic/level filters and next-exercise navigation.
+- [x] Add topic/level filters and next-exercise navigation.
 - [ ] Generate, validate, synthesize, and persist new exercises by topic and level.
 - [ ] Verify Docker setup and add automated checks and screenshots.
 
