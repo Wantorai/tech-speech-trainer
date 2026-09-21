@@ -1,17 +1,19 @@
 """Application entry point: uv run uvicorn app.main:app --reload."""
 
+from dataclasses import asdict
 from pathlib import Path
 from threading import Lock
 from typing import Annotated
 
-from fastapi import FastAPI, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, Form, HTTPException, Query, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app.comparison import normalize
+from app.comparison import Comparison, Difference, normalize
 from app.exercises import EXERCISES, FIRST_EXERCISE, get_exercise, get_next_exercise
-from app.feedback import build_feedback
+from app.feedback import Feedback, build_feedback
+from app.history import get_attempt, list_attempts, save_attempt
 from app.tutor import ask_tutor
 from app.tutor_chat import ask_followup, validate_chat
 
@@ -101,11 +103,43 @@ async def catalog(request: Request, topic: str = "", level: str = ""):
 @app.get(
     "/exercises/{exercise_id}", response_class=HTMLResponse, include_in_schema=False
 )
-async def exercise_page(request: Request, exercise_id: str):
-    """Render an exercise form without revealing the original transcript."""
+def exercise_page(request: Request, exercise_id: str, attempt: int | None = None):
+    """Render a fresh exercise or restore a saved result after submission."""
     exercise = get_exercise(exercise_id)
     if exercise is None:
         raise HTTPException(status_code=404, detail="Упражнение не найдено")
+    if attempt is not None:
+        saved = get_attempt(attempt)
+        if saved is None or saved["exercise"]["id"] != exercise_id:
+            raise HTTPException(status_code=404, detail="Попытка не найдена")
+        if saved["exercise"] != asdict(exercise):
+            return RedirectResponse(
+                request.url_for("attempt_detail", attempt_id=attempt), status_code=303
+            )
+        data = saved["feedback"]["comparison"]
+        result = Comparison(
+            **{
+                **data,
+                "alignment": tuple(Difference(**item) for item in data["alignment"]),
+            }
+        )
+        feedback = Feedback(
+            comparison=result, explanations=tuple(saved["feedback"]["explanations"])
+        )
+        return templates.TemplateResponse(
+            request=request,
+            name="exercise.html",
+            context={
+                "exercise": exercise,
+                "answer": saved["answer"],
+                "result": result,
+                "feedback": feedback,
+                "ai_available": True,
+                "next_exercise": get_next_exercise(exercise.id),
+                "error": None,
+            },
+            headers={"Cache-Control": "no-store"},
+        )
     return templates.TemplateResponse(
         request=request,
         name="exercise.html",
@@ -116,12 +150,12 @@ async def exercise_page(request: Request, exercise_id: str):
 @app.post(
     "/exercises/{exercise_id}", response_class=HTMLResponse, include_in_schema=False
 )
-async def check_answer(
+def check_answer(
     request: Request,
     exercise_id: str,
     answer: Annotated[str, Form()] = "",
 ):
-    """Validate the answer and render word comparison results or form errors."""
+    """Validate and save an answer, then redirect to its result or render errors."""
     exercise = get_exercise(exercise_id)
     if exercise is None:
         raise HTTPException(status_code=404, detail="Упражнение не найдено")
@@ -132,6 +166,14 @@ async def check_answer(
         error = "Напиши хотя бы одно услышанное слово, затем нажми «Проверить»."
     feedback = None if error else build_feedback(exercise.transcript, answer)
     result = feedback.comparison if feedback else None
+    if feedback is not None:
+        attempt_id = save_attempt(exercise, answer, feedback)
+        return RedirectResponse(
+            str(request.url_for("exercise_page", exercise_id=exercise_id))
+            + f"?attempt={attempt_id}#result",
+            status_code=303,
+            headers={"Cache-Control": "no-store"},
+        )
     return templates.TemplateResponse(
         request=request,
         name="exercise.html",
@@ -145,6 +187,35 @@ async def check_answer(
             "error": error,
         },
         status_code=422 if error else 200,
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/history", response_class=HTMLResponse, include_in_schema=False)
+def history_page(request: Request, page: Annotated[int, Query(ge=1, le=1000000)] = 1):
+    """Render a paginated list of locally saved attempts."""
+    attempts, has_next = list_attempts(page)
+    return templates.TemplateResponse(
+        request=request,
+        name="history.html",
+        context={"attempts": attempts, "page": page, "has_next": has_next},
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/history/{attempt_id}", response_class=HTMLResponse, include_in_schema=False)
+def attempt_detail(request: Request, attempt_id: int):
+    """Show the original saved answer and feedback without running AI or rescoring."""
+    attempt = get_attempt(attempt_id)
+    if attempt is None:
+        raise HTTPException(status_code=404, detail="Попытка не найдена")
+    return templates.TemplateResponse(
+        request=request,
+        name="attempt.html",
+        context={
+            "attempt": attempt,
+            "current_exercise": get_exercise(attempt["exercise"]["id"]),
+        },
         headers={"Cache-Control": "no-store"},
     )
 

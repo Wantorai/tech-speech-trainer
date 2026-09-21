@@ -6,7 +6,7 @@ Listen to a short recording, type the English words you heard, and review the di
 
 ## Project status
 
-**Early development — six exercises with an experimental AI tutor.** The app includes a filterable catalog across three topics and two levels, bundled audio and Russian translations, deterministic comparison and explanations, an accuracy score, teacher feedback from local Ollama, and an ephemeral follow-up chat. Saved history, expansion to 24 exercises, generated exercises, and Docker packaging are upcoming.
+**Early development — six exercises with an experimental AI tutor.** The app includes a filterable catalog across three topics and two levels, bundled audio and Russian translations, deterministic comparison and explanations, an accuracy score, teacher feedback from local Ollama, and an ephemeral follow-up chat. Local SQLite attempt history is available; expansion to 24 exercises, generated exercises, and Docker packaging are upcoming.
 
 This is a learning project focused on Python development, practical AI integration, and a reproducible setup for reviewers.
 
@@ -23,7 +23,7 @@ Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Stop the foreground server 
 
 `uv sync` creates an isolated `.venv` and installs the versions recorded in `uv.lock`. Initial dependency downloads need internet access. The current app and bundled audio work locally without Ollama, a model download, an API key, or an external CDN.
 
-Select **Начать тренировку** for the first exercise, or **Выбрать упражнение** to open [the catalog](http://127.0.0.1:8000/exercises). Filter by topic and level, listen, type your answer, and submit it to reveal the transcript, prepared Russian translation, and comparison. Translation requires no AI request and appears after any valid submission. **Следующее упражнение** moves through catalog order, independently of filters; the final exercise links back to the catalog. A new exercise starts with an empty answer and chat. Attempts are not saved yet.
+Select **Начать тренировку** for the first exercise, or **Выбрать упражнение** to open [the catalog](http://127.0.0.1:8000/exercises). Filter by topic and level, listen, type your answer, and submit it to reveal the transcript, prepared Russian translation, and comparison. Translation requires no AI request and appears after any valid submission. **Следующее упражнение** moves through catalog order, independently of filters; the final exercise links back to the catalog. A new exercise starts with an empty answer and chat. Valid submissions are saved automatically. Open **История попыток** to review earlier answers and scores.
 
 The starter catalog contains one Level 1 exercise (10–15 words) and one Level 2 exercise (two sentences, 20–30 words) in each topic: introductions and responsibilities, projects and personal contributions, and teamwork. Levels 3 and 4 are planned. Audio and answer text are bundled, so the catalog is usable without a model running.
 
@@ -238,7 +238,7 @@ The final `tutor-v2` prompt returned structurally valid responses for all four d
 
 The **Ask AI** button now provides experimental English tutor feedback, including explanations for correct answers. The next quality step is feedback from real learner practice. Python continues to own scoring. Text-based listening tips are not an assessment of the learner's pronunciation.
 
-Later milestones add saved attempts and AI-generated exercises by topic and level. Generated text and Russian translation will be checked, voiced with Piper, and saved before an exercise becomes playable. The planned 24 reviewed exercises remain the starter catalog and fallback. We start with prompting and examples, without custom model training. Follow-up chat is available with temporary context; exercise generation is not yet implemented.
+Later milestones add AI-generated exercises by topic and level. Generated text and Russian translation will be checked, voiced with Piper, and saved before an exercise becomes playable. The planned 24 reviewed exercises remain the starter catalog and fallback. We start with prompting and examples, without custom model training. Follow-up chat is available with temporary context; exercise generation is not yet implemented.
 
 - [x] Establish the repository foundation and document the intended scope.
 - [x] Evaluate and select a local model, recording quality and latency limitations.
@@ -247,7 +247,8 @@ Later milestones add saved attempts and AI-generated exercises by topic and leve
 - [x] Evaluate explanations; integrate optional local AI vocabulary notes and handle provider failures.
 - [x] Add full English tutor feedback through Ask AI and evaluate it on new synthetic examples.
 - [ ] Collect feedback from real learner practice and improve the tutor.
-- [ ] Expand to 24 exercises and save attempt history.
+- [x] Save attempt snapshots in SQLite and browse local history.
+- [ ] Expand the reviewed catalog to 24 exercises.
 - [x] Add ephemeral follow-up questions tied to the current exercise and attempt.
 - [x] Add a six-exercise catalog with topic/level filters and next-exercise navigation.
 - [ ] Generate, validate, synthesize, and persist new exercises by topic and level.
@@ -260,3 +261,11 @@ Every Python function and method, including tests and helper scripts, should hav
 The public project overview and setup instructions are maintained in this English README. Personal learning notes are written in Russian under `docs/`, which is intentionally excluded from version control.
 
 Development proceeds in small, reviewable steps. Each step should have a clear outcome, an appropriate verification, and an explanatory commit.
+
+## Local attempt history
+
+Valid submissions are stored in `var/attempts.sqlite3` (created automatically). SQLite is included with Python; no database server is needed. Set `TECHSPEECH_DB` to override the database file path. The app does not load `.env` files automatically. The default path is independent of the working directory.
+
+`/history` lists attempts newest first, 20 per page, with UTC timestamps. Each record preserves the submitted answer, exercise text and translation, a SHA-256 version of exercise metadata, and the original deterministic comparison and explanations. Old scores are not recalculated when the exercise or scoring code changes. Audio bytes are not archived; the version identifies metadata, not the WAV contents. AI analysis and follow-up chats are not stored.
+
+Successful form submissions redirect to a saved result, so refreshing that page does not submit another attempt. An explicit new submission creates a new attempt. History is shared by the single local user; there are no accounts. To back it up, stop the application and copy the database file. Databases and personal answers are excluded from Git. Automated tests use isolated temporary databases.

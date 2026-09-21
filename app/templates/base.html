@@ -16,7 +16,7 @@
           <img src="{{ url_for('static', path='/favicon.svg') }}" width="36" height="36" alt="">
           <span>tech speech<span class="brand-subtitle">LISTEN. UNDERSTAND. GROW.</span></span>
         </a>
-        <span class="header-note">Английский для разработчиков</span>
+        <a class="back-link" href="{{ url_for('history_page') }}">История попыток</a>
       </header>
       <main id="main">{% block content %}{% endblock %}</main>
       <footer class="footer">Tech Speech Trainer · Учимся понимать речь на технических интервью.</footer>

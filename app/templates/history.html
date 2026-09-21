@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}История попыток — Tech Speech Trainer{% endblock %}
+{% block content %}
+<div class="exercise-page">
+  <h1>История попыток</h1>
+  <p>Ответы сохраняются на этом компьютере. Время указано в UTC. AI-разбор и мини-чат не сохраняются.</p>
+  {% for attempt in attempts %}
+  <section class="practice-panel">
+    <p class="eyebrow">{{ attempt.exercise.topic }} · Уровень {{ attempt.exercise.level }}</p>
+    <h2><a href="{{ url_for('attempt_detail', attempt_id=attempt.id) }}">{{ attempt.exercise.title }}</a></h2>
+    <p><strong>{{ '%g' | format(attempt.feedback.comparison.score) }}%</strong> · <time datetime="{{ attempt.created_at }}">{{ attempt.created_at }}</time></p>
+  </section>
+  {% else %}<p>Здесь пока нет попыток. Пройди упражнение, чтобы сохранить первый результат.</p>{% endfor %}
+  <nav aria-label="Страницы истории">
+    {% if page > 1 %}<a class="back-link" href="{{ url_for('history_page') }}?page={{ page - 1 }}">← Более новые</a>{% endif %}
+    {% if has_next %}<a class="back-link" href="{{ url_for('history_page') }}?page={{ page + 1 }}">Более старые →</a>{% endif %}
+  </nav>
+  <a class="back-link" href="{{ url_for('catalog') }}">К упражнениям →</a>
+</div>
+{% endblock %}
