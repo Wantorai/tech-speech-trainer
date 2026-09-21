@@ -108,6 +108,24 @@ button[hidden] { display: none; }
 .chat-message p { margin: 8px 0 0; white-space: pre-line; }
 #chat-form label { display: block; margin: 18px 0 8px; }
 #chat-question { min-height: 80px; margin-bottom: 12px; }
+#ai-status, #chat-status { display: flex; align-items: flex-start; gap: 10px; }
+#ai-form[aria-busy="true"] ~ #ai-status::before,
+#chat-form[aria-busy="true"] ~ #chat-status::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  border: 2px solid var(--line);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: ai-spin .8s linear infinite;
+}
+@keyframes ai-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  #ai-form[aria-busy="true"] ~ #ai-status::before,
+  #chat-form[aria-busy="true"] ~ #chat-status::before { animation: none; }
+}
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 @media (max-width: 850px) {
