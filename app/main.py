@@ -13,6 +13,7 @@ from app.comparison import normalize
 from app.exercises import FIRST_EXERCISE, get_exercise
 from app.feedback import build_feedback
 from app.tutor import ask_tutor
+from app.tutor_chat import ask_followup, validate_chat
 
 APP_DIR = Path(__file__).resolve().parent
 
@@ -137,6 +138,50 @@ def ai_notes(exercise_id: str, answer: Annotated[str, Form()] = ""):
             "status": feedback.status,
             "message": AI_MESSAGES[feedback.status],
             "analysis": feedback.analysis,
+        },
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.post("/exercises/{exercise_id}/ai/chat", include_in_schema=False)
+def ai_chat(
+    exercise_id: str,
+    answer: Annotated[str, Form()] = "",
+    question: Annotated[str, Form()] = "",
+    analysis: Annotated[str, Form()] = "",
+    history: Annotated[str, Form()] = "[]",
+):
+    """Answer a contextual follow-up without persisting the conversation."""
+    exercise = get_exercise(exercise_id)
+    if exercise is None:
+        raise HTTPException(status_code=404, detail="Упражнение не найдено")
+    if len(answer) > 2000 or not normalize(answer):
+        raise HTTPException(
+            status_code=422, detail="Отправь допустимый ответ на упражнение."
+        )
+    try:
+        parsed_analysis, parsed_history = validate_chat(question, analysis, history)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from None
+    if not AI_LOCK.acquire(blocking=False):
+        return JSONResponse(
+            {"status": "busy", "message": AI_MESSAGES["busy"]},
+            status_code=429,
+            headers={"Cache-Control": "no-store"},
+        )
+    try:
+        result = ask_followup(
+            exercise, answer, question, parsed_analysis, parsed_history
+        )
+    finally:
+        AI_LOCK.release()
+    return JSONResponse(
+        {
+            "status": result.status,
+            "message": "Ответ готов."
+            if result.status == "ready"
+            else AI_MESSAGES[result.status],
+            "reply": result.analysis["answer_ru"] if result.analysis else None,
         },
         headers={"Cache-Control": "no-store"},
     )

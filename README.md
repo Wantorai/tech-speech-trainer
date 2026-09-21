@@ -6,7 +6,7 @@ Listen to a short recording, type the English words you heard, and review the di
 
 ## Project status
 
-**Early development — first exercise with an experimental AI tutor.** The app includes one Level 1 exercise with bundled audio, Russian translation, deterministic comparison and explanations, an accuracy score, and optional teacher feedback from local Ollama. Follow-up chat, saved history, more exercises, generated exercises, and Docker packaging are upcoming.
+**Early development — first exercise with an experimental AI tutor.** The app includes one Level 1 exercise with bundled audio, Russian translation, deterministic comparison and explanations, an accuracy score, teacher feedback from local Ollama, and an ephemeral follow-up chat. Saved history, more exercises, generated exercises, and Docker packaging are upcoming.
 
 This is a learning project focused on Python development, practical AI integration, and a reproducible setup for reviewers.
 
@@ -27,6 +27,8 @@ Select **Начать тренировку** on the home page, or open [the firs
 
 After any valid answer, including a perfect match, select **Спросить AI** (Ask AI) below the comparison. Start Ollama and install `qwen3:4b` using the instructions below. The tutor explains relevant grammar and meaning, suggests a listening focus, and gives a related English example with a Russian translation. Empty optional sections are omitted. Feedback loads separately while the score and prepared translation remain visible. JavaScript is required only for this optional button. Failures leave the normal result intact. The tutor can make factual mistakes; it does not hear the recording or assess the learner's pronunciation.
 
+After a successful AI analysis, a mini-chat replaces the generation button. Ask a grammar question or request another example. Conversation messages remain on the current page only and disappear on a new submission, navigation, or reload. Each request supplies the initial analysis and the last two successful follow-ups; no chat sessions are saved on the server. Failed requests preserve the question for retry. Questions are limited to 400 characters, and longer context passages are abbreviated for the local model.
+
 Available routes:
 
 | Route | Purpose |
@@ -34,6 +36,7 @@ Available routes:
 | `/` | Introduction page with the planned training flow and four levels |
 | `/exercises/intro-01` | GET: listening exercise; POST: compare the submitted answer |
 | `/exercises/intro-01/ai` | POST: request optional teacher analysis for the submitted answer |
+| `/exercises/intro-01/ai/chat` | POST: answer a contextual follow-up without saving a session |
 | `/health` | Application liveness: `{"status":"ok"}`; does not check AI availability |
 | `/docs` | Generated interactive API reference, currently showing the health endpoint |
 
@@ -214,7 +217,7 @@ python -m scripts.preview_feedback --answer "I work as a developer and build app
 python -m scripts.preview_feedback --answer "I work as a developer and build applications for small businesses." --ai
 ```
 
-AI is opt-in. With `--ai`, Ollama receives the server-owned transcript, translation, topic, exercise level, learner answer, and up to 12 computed differences with the total count. The score is not delegated to the model. Responses contain a summary, optional grammar/listening sections, and a translated example. The context limit is 4,096 tokens, the output limit is 1,024 tokens, and the network-operation timeout is 90 seconds. This is not a strict end-to-end deadline. Only one web AI request per application process is admitted at a time; failures preserve the normal result. Repeat clicks request a new analysis, not a follow-up conversation.
+AI is opt-in. With `--ai`, Ollama receives the server-owned transcript, translation, topic, exercise level, learner answer, and up to 12 computed differences with the total count. The score is not delegated to the model. Responses contain a summary, optional grammar/listening sections, and a translated example. The context limit is 4,096 tokens, the output limit is 1,024 tokens, and the network-operation timeout is 90 seconds. This is not a strict end-to-end deadline. Only one web AI request per application process is admitted at a time; failures preserve the normal result. In the browser, successful analysis opens a follow-up chat instead of offering repeated generation.
 
 Evaluate the teacher prompt separately from the earlier experiments:
 
@@ -232,7 +235,7 @@ The final `tutor-v2` prompt returned structurally valid responses for all four d
 
 The **Ask AI** button now provides experimental English tutor feedback, including explanations for correct answers. The next quality step is feedback from real learner practice. Python continues to own scoring. Text-based listening tips are not an assessment of the learner's pronunciation.
 
-Later milestones add follow-up questions and AI-generated exercises by topic and level. Generated text and Russian translation will be checked, voiced with Piper, and saved before an exercise becomes playable. The planned 24 reviewed exercises remain the starter catalog and fallback. We start with prompting and examples, without custom model training. Follow-up chat and exercise generation are not yet implemented.
+Later milestones add saved attempts and AI-generated exercises by topic and level. Generated text and Russian translation will be checked, voiced with Piper, and saved before an exercise becomes playable. The planned 24 reviewed exercises remain the starter catalog and fallback. We start with prompting and examples, without custom model training. Follow-up chat is available with temporary context; exercise generation is not yet implemented.
 
 - [x] Establish the repository foundation and document the intended scope.
 - [x] Evaluate and select a local model, recording quality and latency limitations.
@@ -242,7 +245,7 @@ Later milestones add follow-up questions and AI-generated exercises by topic and
 - [x] Add full English tutor feedback through Ask AI and evaluate it on new synthetic examples.
 - [ ] Collect feedback from real learner practice and improve the tutor.
 - [ ] Expand to 24 exercises and save attempt history.
-- [ ] Add follow-up questions tied to the current exercise and attempt.
+- [x] Add ephemeral follow-up questions tied to the current exercise and attempt.
 - [ ] Generate, validate, synthesize, and persist new exercises by topic and level.
 - [ ] Verify Docker setup and add automated checks and screenshots.
 

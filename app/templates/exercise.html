@@ -65,6 +65,17 @@
       <noscript><p>Для AI-разбора включи JavaScript. Обычная проверка работает без него.</p></noscript>
       <p id="ai-status" role="status" aria-live="polite"></p>
       <div id="ai-analysis"></div>
+      <section id="ai-chat" hidden aria-labelledby="chat-title">
+        <h4 id="chat-title">Уточнить у преподавателя</h4>
+        <p class="field-hint">Чат исчезнет при новой проверке или смене упражнения. AI учитывает разбор и два последних уточнения.</p>
+        <div id="chat-messages" role="log" aria-live="polite"></div>
+        <form id="chat-form" action="{{ url_for('ai_chat', exercise_id=exercise.id) }}" method="post">
+          <label for="chat-question">Твой вопрос</label>
+          <textarea id="chat-question" name="question" rows="2" maxlength="400" required placeholder="Почему здесь используется это время?"></textarea>
+          <button class="button" id="chat-button" type="submit">Отправить вопрос</button>
+        </form>
+        <p id="chat-status" role="status" aria-live="polite"></p>
+      </section>
     </section>
     <script src="{{ url_for('static', path='/feedback.js') }}" defer></script>
     {% endif %}

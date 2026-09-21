@@ -85,15 +85,17 @@ def prepare_tutor_input(exercise: Exercise, answer: str) -> dict:
     }
 
 
-def request_tutor(data: dict, *, timeout: float = 90) -> object:
+def request_tutor(
+    data: dict, *, timeout: float = 90, prompt: str = PROMPT, schema: dict = SCHEMA
+) -> object:
     """Ask local Ollama for one complete tutor response without automatic retries."""
     payload = {
         "model": "qwen3:4b",
         "messages": [
-            {"role": "system", "content": PROMPT},
+            {"role": "system", "content": prompt},
             {"role": "user", "content": json.dumps(data, ensure_ascii=False)},
         ],
-        "format": SCHEMA,
+        "format": schema,
         "stream": False,
         "think": False,
         "keep_alive": "5m",

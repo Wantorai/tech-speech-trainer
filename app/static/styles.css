@@ -103,6 +103,11 @@ button.button { border: 0; font-family: inherit; cursor: pointer; }
 .ai-notes #ai-analysis p { white-space: pre-line; line-height: 1.6; }
 button.button:disabled { opacity: .65; cursor: wait; }
 button[hidden] { display: none; }
+[hidden] { display: none !important; }
+.chat-message { margin: 12px 0; padding: 14px; background: #f2f6ef; border-radius: 8px; }
+.chat-message p { margin: 8px 0 0; white-space: pre-line; }
+#chat-form label { display: block; margin: 18px 0 8px; }
+#chat-question { min-height: 80px; margin-bottom: 12px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 @media (max-width: 850px) {
