@@ -10,6 +10,7 @@ class Exercise:
     topic: str
     level: int
     transcript: str
+    translation_ru: str
     audio_file: str
 
 
@@ -22,6 +23,7 @@ FIRST_EXERCISE = Exercise(
         "I work as a frontend developer and build applications for small businesses."
     ),
     audio_file="audio/intro-01.wav",
+    translation_ru="Я работаю фронтенд-разработчиком и создаю приложения для малого бизнеса.",
 )
 
 

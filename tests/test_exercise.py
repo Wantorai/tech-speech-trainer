@@ -19,10 +19,11 @@ def client():
 
 
 def test_original_is_not_rendered_before_submission(client):
-    """Keep the transcript hidden until the learner submits a valid answer."""
+    """Keep the transcript and translation hidden before a valid submission."""
     response = client.get(URL)
     assert response.status_code == 200
     assert FIRST_EXERCISE.transcript not in response.text
+    assert FIRST_EXERCISE.translation_ru not in response.text
     assert "<audio" in response.text and 'name="answer"' in response.text
     assert "result-panel" not in response.text
 
@@ -34,8 +35,10 @@ def test_correct_answer_reveals_original_and_perfect_score(client):
     assert "100%" in response.text
     assert "Всё совпало!" in response.text
     assert FIRST_EXERCISE.transcript in response.text
+    assert FIRST_EXERCISE.translation_ru in response.text
     assert response.headers["cache-control"] == "no-store"
     assert FIRST_EXERCISE.transcript not in client.get(URL).text
+    assert FIRST_EXERCISE.translation_ru not in client.get(URL).text
 
 
 @pytest.mark.parametrize("answer", ["", " \n\t", "...?!", "word " * 401])
@@ -45,6 +48,7 @@ def test_invalid_answer_shows_russian_error_without_revealing_original(client, a
     assert response.status_code == 422
     assert 'role="alert"' in response.text
     assert FIRST_EXERCISE.transcript not in response.text
+    assert FIRST_EXERCISE.translation_ru not in response.text
 
 
 def test_user_markup_is_escaped_in_the_answer_and_feedback(client):
@@ -53,6 +57,7 @@ def test_user_markup_is_escaped_in_the_answer_and_feedback(client):
     assert response.status_code == 200
     assert "<script>" not in response.text
     assert "&lt;script&gt;" in response.text
+    assert FIRST_EXERCISE.translation_ru in response.text
 
 
 def test_unknown_exercise_is_not_silently_replaced(client):

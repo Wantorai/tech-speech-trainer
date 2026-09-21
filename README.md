@@ -23,7 +23,7 @@ Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Stop the foreground server 
 
 `uv sync` creates an isolated `.venv` and installs the versions recorded in `uv.lock`. Initial dependency downloads need internet access. The current app and bundled audio work locally without Ollama, a model download, an API key, or an external CDN.
 
-Select **Начать тренировку** on the home page, or open [the first exercise](http://127.0.0.1:8000/exercises/intro-01). Replay the recording, type your answer, and submit it to reveal the transcript and comparison. You can correct the answer or start a fresh attempt. Attempts are not saved yet.
+Select **Начать тренировку** on the home page, or open [the first exercise](http://127.0.0.1:8000/exercises/intro-01). Replay the recording, type your answer, and submit it to reveal the transcript, Russian translation, and comparison. Each exercise stores a prepared translation; displaying it requires no AI request. The translation appears after a valid submission, even if the answer is incorrect, and is hidden again on a fresh attempt. You can correct the answer or start a fresh attempt. Attempts are not saved yet.
 
 Available routes:
 

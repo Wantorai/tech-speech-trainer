@@ -33,6 +33,8 @@
     <p>Совпало слов: <strong>{{ result.matches }} из {{ result.reference_count }}</strong>. Расхождений: <strong>{{ result.errors }}</strong>.</p>
     <h3>Оригинал</h3>
     <blockquote class="transcript" lang="en">{{ exercise.transcript }}</blockquote>
+    <h3>Перевод на русский</h3>
+    <p lang="ru">{{ exercise.translation_ru }}</p>
     <h3>Сравнение по словам</h3>
     <p class="field-hint">Слова приведены к единому виду для сравнения. Пропуски, замены и лишние слова отмечены отдельно.</p>
     <div class="word-comparison" lang="en">
