@@ -49,21 +49,30 @@
     </div>
     {% if result.differences %}
     <ul class="difference-list">
-      {% for item in result.differences %}
-      <li>
-        {% if item.kind == 'missing' %}Пропущено <strong lang="en">{{ item.expected }}</strong>.
-        {% elif item.kind == 'extra' %}В оригинале нет слова <strong lang="en">{{ item.heard }}</strong> — оно лишнее в ответе.
-        {% else %}Написано <strong lang="en">{{ item.heard }}</strong>, в оригинале — <strong lang="en">{{ item.expected }}</strong>.{% endif %}
-        {% if item.possible_typo %}<span class="typo-hint">Близкое написание — возможная опечатка. Причину ошибки по тексту определить нельзя.</span>{% endif %}
-      </li>
+      {% for explanation in feedback.explanations %}
+      <li>{{ explanation }}</li>
       {% endfor %}
     </ul>
+    {% endif %}
+    {% if ai_available %}
+    <section class="ai-notes" aria-labelledby="ai-title">
+      <h3 id="ai-title">Разобраться в словах с AI</h3>
+      <p class="field-hint">До трёх слов из оригинала. AI может ошибаться; эти заметки не влияют на оценку.</p>
+      <form id="ai-form" action="{{ url_for('ai_notes', exercise_id=exercise.id) }}" method="post">
+        <input type="hidden" name="answer" value="{{ answer }}">
+        <button class="button" id="ai-button" type="submit" hidden>Пояснить слова с AI</button>
+      </form>
+      <noscript><p>Для дополнительных AI-заметок включи JavaScript. Обычная проверка работает без него.</p></noscript>
+      <p id="ai-status" role="status" aria-live="polite"></p>
+      <dl id="ai-vocabulary"></dl>
+    </section>
+    <script src="{{ url_for('static', path='/feedback.js') }}" defer></script>
     {% endif %}
     <details class="scoring-rules">
       <summary>Как считается точность?</summary>
       <p>Каждый пропуск, замена или лишнее слово — одно расхождение. Точность = 100 × (1 − расхождения / слова оригинала), минимум 0%. Слова считаются после нормализации; опечатки пока учитываются как замены.</p>
       <p>Игнорируем регистр, пробелы и обычную пунктуацию. Поддерживаем однозначные сокращения (например, don't = do not) и целые числа от 0 до 20, записанные словом или цифрой. Апостроф внутри слова значим: we'll и well — разные слова. Неоднозначные 's и 'd не раскрываем.</p>
-      <p>Это точность записи, а не оценка общего уровня английского или понимания смысла. Сейчас разбор выполняется по правилам; AI-пояснения появятся позже.</p>
+      <p>Это точность записи, а не оценка общего уровня английского или понимания смысла. Расхождения и пояснения к ним формирует Python. Дополнительные AI-заметки объясняют значения слов и не меняют оценку.</p>
     </details>
     <a class="back-link retry-link" href="{{ url_for('exercise_page', exercise_id=exercise.id) }}">Повторить без подсказок ↗</a>
     <p class="field-hint">Пока доступно одно упражнение. История попыток ещё не сохраняется.</p>

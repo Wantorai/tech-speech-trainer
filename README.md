@@ -2,11 +2,11 @@
 
 An English listening practice app for Russian-speaking software developers preparing for technical interviews.
 
-Listen to a short recording, type the English words you heard, and review the differences. Local AI explanations in Russian are planned as the next step.
+Listen to a short recording, type the English words you heard, and review the differences and Russian translation. Optionally request local AI vocabulary notes in Russian.
 
 ## Project status
 
-**Early development — first playable exercise.** The app includes one Level 1 listening exercise with bundled audio, answer submission, deterministic word comparison, and a transcription accuracy score. Local AI has been evaluated separately; AI feedback in the app, saved history, more exercises, and Docker packaging are upcoming.
+**Early development — first exercise with optional local AI notes.** The app includes one Level 1 exercise with bundled audio, Russian translation, deterministic comparison and explanations, an accuracy score, and optional vocabulary notes from local Ollama. Saved history, more exercises, and Docker packaging are upcoming.
 
 This is a learning project focused on Python development, practical AI integration, and a reproducible setup for reviewers.
 
@@ -25,12 +25,15 @@ Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Stop the foreground server 
 
 Select **Начать тренировку** on the home page, or open [the first exercise](http://127.0.0.1:8000/exercises/intro-01). Replay the recording, type your answer, and submit it to reveal the transcript, Russian translation, and comparison. Each exercise stores a prepared translation; displaying it requires no AI request. The translation appears after a valid submission, even if the answer is incorrect, and is hidden again on a fresh attempt. You can correct the answer or start a fresh attempt. Attempts are not saved yet.
 
+After submitting an answer with missing or substituted reference words, select **Пояснить слова с AI** below the comparison. Start Ollama and install `qwen3:4b` using the instructions below. Notes load separately; the score and translation remain visible. Requests explain up to three words, and failures leave the normal result intact. JavaScript is required only for this optional button. Correct answers and differences with no vocabulary to explain do not show it.
+
 Available routes:
 
 | Route | Purpose |
 | --- | --- |
 | `/` | Introduction page with the planned training flow and four levels |
 | `/exercises/intro-01` | GET: listening exercise; POST: compare the submitted answer |
+| `/exercises/intro-01/ai` | POST: request optional vocabulary notes for the submitted answer |
 | `/health` | Application liveness: `{"status":"ok"}`; does not check AI availability |
 | `/docs` | Generated interactive API reference, currently showing the health endpoint |
 
@@ -198,13 +201,13 @@ Logs are saved under `var/evals/explanations-*.jsonl`, including computed differ
 
 On September 19, 2026, two CPU runs produced 11/11 structurally valid responses each; five equivalent answers and two empty inputs made no model requests. Manual review accepted 6/11 explanations initially and 7/11 after prompt revision, below the predeclared 10/11 target. Revised-run latency was 12.448 seconds median and 46.263 seconds maximum. Remaining issues included confusing negation, overstating the effect of an omission, an incorrect tense explanation, and presenting a possible typo as certain. The injected instruction was treated as answer data in both runs; this single case does not establish general prompt-injection resistance.
 
-The experiment supports keeping AI commentary supplementary. Critical meaning changes need reliable explanations before web integration; computed differences and accuracy remain independent of the model.
+The experiment supports keeping AI commentary supplementary. The web integration now uses deterministic edit and negation explanations and limits the model to vocabulary notes; computed differences and accuracy remain independent of the model.
 
 Six additional requests repeated negation, spelling, and two-error cases twice. All passed structural validation; manual review accepted 3/6. One negation explanation improved on repetition while the other remained confusing. Fixed sampling settings did not guarantee identical text. These repeats are reported separately from the 11-case results.
 
 ## Preview the feedback module
 
-The feedback module (`app.feedback`) now provides deterministic edit explanations and optional Ollama vocabulary notes. It is available through a CLI preview; the web exercise has not been connected to it yet:
+The feedback module (`app.feedback`) provides deterministic edit explanations and optional Ollama vocabulary notes, both connected to the web exercise. A CLI preview is also available:
 
 ```sh
 python -m scripts.preview_feedback --answer "I work as a developer and build applications for small businesses."
@@ -219,7 +222,7 @@ AI is opt-in. With `--ai`, local Ollama receives only the reference transcript a
 - [x] Evaluate and select a local model, recording quality and latency limitations.
 - [x] Build a minimal Python application and introduction page.
 - [x] Complete one exercise with audio playback and text comparison.
-- [ ] Evaluate explanations of precomputed differences; integrate local AI feedback and handle provider failures.
+- [x] Evaluate explanations; integrate optional local AI vocabulary notes and handle provider failures.
 - [ ] Expand to 24 exercises and save attempt history.
 - [ ] Verify Docker setup and add automated checks and screenshots.
 

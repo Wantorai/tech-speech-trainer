@@ -98,6 +98,11 @@ button.button { border: 0; font-family: inherit; cursor: pointer; }
 .scoring-rules summary { color: var(--green); cursor: pointer; font-weight: 600; }
 .scoring-rules p { font-size: .85rem; margin-top: 14px; }
 .retry-link { margin: 25px 0 10px; }
+.ai-notes { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.ai-notes dt { font-weight: 700; margin-top: 14px; }
+.ai-notes dd { margin: 5px 0 0; line-height: 1.6; }
+button.button:disabled { opacity: .65; cursor: wait; }
+button[hidden] { display: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 @media (max-width: 850px) {
