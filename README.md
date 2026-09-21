@@ -2,11 +2,11 @@
 
 An English listening practice app for Russian-speaking software developers preparing for technical interviews.
 
-Listen to a short recording, type the English words you heard, and review the differences and Russian translation. Optionally request local AI vocabulary notes in Russian.
+Listen to a short recording, type the English words you heard, and review the differences and Russian translation. Ask an experimental local AI English tutor for grammar explanations, listening tips, and a related example.
 
 ## Project status
 
-**Early development — first exercise with optional local AI notes.** The app includes one Level 1 exercise with bundled audio, Russian translation, deterministic comparison and explanations, an accuracy score, and optional vocabulary notes from local Ollama. Saved history, more exercises, and Docker packaging are upcoming.
+**Early development — first exercise with an experimental AI tutor.** The app includes one Level 1 exercise with bundled audio, Russian translation, deterministic comparison and explanations, an accuracy score, and optional teacher feedback from local Ollama. Follow-up chat, saved history, more exercises, generated exercises, and Docker packaging are upcoming.
 
 This is a learning project focused on Python development, practical AI integration, and a reproducible setup for reviewers.
 
@@ -25,7 +25,7 @@ Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Stop the foreground server 
 
 Select **Начать тренировку** on the home page, or open [the first exercise](http://127.0.0.1:8000/exercises/intro-01). Replay the recording, type your answer, and submit it to reveal the transcript, Russian translation, and comparison. Each exercise stores a prepared translation; displaying it requires no AI request. The translation appears after a valid submission, even if the answer is incorrect, and is hidden again on a fresh attempt. You can correct the answer or start a fresh attempt. Attempts are not saved yet.
 
-After submitting an answer with missing or substituted reference words, select **Пояснить слова с AI** below the comparison. Start Ollama and install `qwen3:4b` using the instructions below. Notes load separately; the score and translation remain visible. Requests explain up to three words, and failures leave the normal result intact. JavaScript is required only for this optional button. Correct answers and differences with no vocabulary to explain do not show it.
+After any valid answer, including a perfect match, select **Спросить AI** (Ask AI) below the comparison. Start Ollama and install `qwen3:4b` using the instructions below. The tutor explains relevant grammar and meaning, suggests a listening focus, and gives a related English example with a Russian translation. Empty optional sections are omitted. Feedback loads separately while the score and prepared translation remain visible. JavaScript is required only for this optional button. Failures leave the normal result intact. The tutor can make factual mistakes; it does not hear the recording or assess the learner's pronunciation.
 
 Available routes:
 
@@ -33,7 +33,7 @@ Available routes:
 | --- | --- |
 | `/` | Introduction page with the planned training flow and four levels |
 | `/exercises/intro-01` | GET: listening exercise; POST: compare the submitted answer |
-| `/exercises/intro-01/ai` | POST: request optional vocabulary notes for the submitted answer |
+| `/exercises/intro-01/ai` | POST: request optional teacher analysis for the submitted answer |
 | `/health` | Application liveness: `{"status":"ok"}`; does not check AI availability |
 | `/docs` | Generated interactive API reference, currently showing the health endpoint |
 
@@ -201,33 +201,46 @@ Logs are saved under `var/evals/explanations-*.jsonl`, including computed differ
 
 On September 19, 2026, two CPU runs produced 11/11 structurally valid responses each; five equivalent answers and two empty inputs made no model requests. Manual review accepted 6/11 explanations initially and 7/11 after prompt revision, below the predeclared 10/11 target. Revised-run latency was 12.448 seconds median and 46.263 seconds maximum. Remaining issues included confusing negation, overstating the effect of an omission, an incorrect tense explanation, and presenting a possible typo as certain. The injected instruction was treated as answer data in both runs; this single case does not establish general prompt-injection resistance.
 
-The experiment supports keeping AI commentary supplementary. The web integration now uses deterministic edit and negation explanations and limits the model to vocabulary notes; computed differences and accuracy remain independent of the model.
+The experiment supports keeping AI commentary supplementary. An initial vocabulary-only integration was subsequently expanded into an experimental teacher at the user's request. Computed differences, deterministic edit explanations, and accuracy remain independent of the model.
 
 Six additional requests repeated negation, spelling, and two-error cases twice. All passed structural validation; manual review accepted 3/6. One negation explanation improved on repetition while the other remained confusing. Fixed sampling settings did not guarantee identical text. These repeats are reported separately from the 11-case results.
 
 ## Preview the feedback module
 
-The feedback module (`app.feedback`) provides deterministic edit explanations and optional Ollama vocabulary notes, both connected to the web exercise. A CLI preview is also available:
+The web exercise uses `app.feedback` for deterministic explanations and `app.tutor` for optional teacher analysis. A CLI preview is also available:
 
 ```sh
 python -m scripts.preview_feedback --answer "I work as a developer and build applications for small businesses."
 python -m scripts.preview_feedback --answer "I work as a developer and build applications for small businesses." --ai
 ```
 
-AI is opt-in. With `--ai`, local Ollama receives only the reference transcript and up to three distinct reference words, never the learner answer or score. Negation is explained by Python. If Ollama is unavailable, times out, or returns invalid data, the comparison and deterministic explanations remain available. The new vocabulary prompt has not undergone the earlier explanation benchmark; structurally valid notes can still be inaccurate. See the local Ollama setup above before requesting AI notes.
+AI is opt-in. With `--ai`, Ollama receives the server-owned transcript, translation, topic, exercise level, learner answer, and up to 12 computed differences with the total count. The score is not delegated to the model. Responses contain a summary, optional grammar/listening sections, and a translated example. The context limit is 4,096 tokens, the output limit is 1,024 tokens, and the network-operation timeout is 90 seconds. This is not a strict end-to-end deadline. Only one web AI request per application process is admitted at a time; failures preserve the normal result. Repeat clicks request a new analysis, not a follow-up conversation.
+
+Evaluate the teacher prompt separately from the earlier experiments:
+
+```sh
+python -m scripts.evaluate_tutor --split development --check-only
+python -m scripts.evaluate_tutor --split development
+python -m scripts.evaluate_tutor --split holdout
+```
+
+The eight new synthetic cases separate development examples from a small holdout group. Logs under `var/evals/tutor-*.jsonl` record raw responses, prompt/model settings, input/code hashes, and timings. Structural validation cannot establish teaching accuracy; semantic review is required.
+
+The final `tutor-v2` prompt returned structurally valid responses for all four development and four holdout cases on local Qwen3 4B CPU inference. Median latency across those eight calls was 35.535 seconds, with a 45.748-second maximum. Content review still found substantive errors: a development answer called present-tense `fix` future tense, and a holdout answer misexplained Present Perfect as duration in the past. The expanded contraction was accepted and the appended instruction was treated as extra text. This small evaluation supports experimental use, not a claim of reliable teaching accuracy. The prompt was revised on development cases only; real learner feedback remains pending.
 
 ## Roadmap
 
-The next milestone expands the current vocabulary helper into an experimental English tutor behind an **Ask AI** button. It will use the transcript, learner answer, and deterministic differences to explain relevant grammar, meaning changes, and listening cues, including useful explanations for correct answers. Python will continue to own scoring. Text-based listening tips are not an assessment of the learner's pronunciation.
+The **Ask AI** button now provides experimental English tutor feedback, including explanations for correct answers. The next quality step is feedback from real learner practice. Python continues to own scoring. Text-based listening tips are not an assessment of the learner's pronunciation.
 
-Later milestones add follow-up questions and AI-generated exercises by topic and level. Generated text and Russian translation will be checked, voiced with Piper, and saved before an exercise becomes playable. The 24 reviewed exercises remain the starter catalog and fallback. We will start with prompting and examples, without custom model training; model quality will be assessed in real practice. These tutor and generation features are planned, not yet implemented.
+Later milestones add follow-up questions and AI-generated exercises by topic and level. Generated text and Russian translation will be checked, voiced with Piper, and saved before an exercise becomes playable. The planned 24 reviewed exercises remain the starter catalog and fallback. We start with prompting and examples, without custom model training. Follow-up chat and exercise generation are not yet implemented.
 
 - [x] Establish the repository foundation and document the intended scope.
 - [x] Evaluate and select a local model, recording quality and latency limitations.
 - [x] Build a minimal Python application and introduction page.
 - [x] Complete one exercise with audio playback and text comparison.
 - [x] Evaluate explanations; integrate optional local AI vocabulary notes and handle provider failures.
-- [ ] Add full English tutor feedback through Ask AI and evaluate it on new examples and real practice.
+- [x] Add full English tutor feedback through Ask AI and evaluate it on new synthetic examples.
+- [ ] Collect feedback from real learner practice and improve the tutor.
 - [ ] Expand to 24 exercises and save attempt history.
 - [ ] Add follow-up questions tied to the current exercise and attempt.
 - [ ] Generate, validate, synthesize, and persist new exercises by topic and level.

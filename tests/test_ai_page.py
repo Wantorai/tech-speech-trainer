@@ -24,7 +24,7 @@ def client():
 
 def test_check_renders_explanations_and_ai_for_the_submitted_answer(client):
     """Show deterministic feedback immediately without calling the model."""
-    with patch("app.feedback.request_notes") as request:
+    with patch("app.tutor.request_tutor") as request:
         response = client.post(URL, data={"answer": ANSWER})
     request.assert_not_called()
     assert "91.7%" in response.text
@@ -34,7 +34,7 @@ def test_check_renders_explanations_and_ai_for_the_submitted_answer(client):
     assert FIRST_EXERCISE.translation_ru in response.text
     assert 'id="ai-form"' not in client.get(URL).text
     perfect = client.post(URL, data={"answer": FIRST_EXERCISE.transcript})
-    assert 'id="ai-form"' not in perfect.text
+    assert 'id="ai-form"' in perfect.text
 
 
 def test_ai_endpoint_returns_notes_without_score_or_transcript(client):
@@ -45,23 +45,22 @@ def test_ai_endpoint_returns_notes_without_score_or_transcript(client):
         "message": {
             "content": json.dumps(
                 {
-                    "notes": [
-                        {
-                            "word": "frontend",
-                            "meaning_ru": "Интерфейс <script>alert(1)</script>",
-                        }
-                    ]
+                    "summary_ru": "Пропущено frontend <script>alert(1)</script>",
+                    "grammar_ru": "Уточнение роли разработчика.",
+                    "listening_ru": "Слушай слово перед developer.",
+                    "example_en": "I work as a backend developer.",
+                    "example_ru": "Я работаю бэкенд-разработчиком.",
                 }
             )
         },
     }
-    with patch("app.feedback.request_notes", return_value=response):
+    with patch("app.tutor.request_tutor", return_value=response):
         result = client.post(URL + "/ai", data={"answer": ANSWER})
     assert result.status_code == 200
     assert result.headers["cache-control"] == "no-store"
-    assert set(result.json()) == {"status", "message", "notes"}
+    assert set(result.json()) == {"status", "message", "analysis"}
     assert result.json()["status"] == "ready"
-    assert result.json()["notes"][0]["word"] == "frontend"
+    assert "Пропущено frontend" in result.json()["analysis"]["summary_ru"]
 
 
 @pytest.mark.parametrize(
@@ -74,7 +73,7 @@ def test_ai_endpoint_returns_notes_without_score_or_transcript(client):
 )
 def test_failures_return_readable_status_and_release_lock(client, error, status):
     """Allow a new request after provider failure without losing normal checking."""
-    with patch("app.feedback.request_notes", side_effect=error):
+    with patch("app.tutor.request_tutor", side_effect=error):
         for _ in range(2):
             response = client.post(URL + "/ai", data={"answer": ANSWER})
             assert response.json()["status"] == status
@@ -85,7 +84,7 @@ def test_failures_return_readable_status_and_release_lock(client, error, status)
 @pytest.mark.parametrize("answer", ["", "...", "x" * 2001])
 def test_invalid_ai_input_never_calls_provider(client, answer):
     """Validate AI requests independently of the browser controls."""
-    with patch("app.feedback.request_notes") as request:
+    with patch("app.tutor.request_tutor") as request:
         assert client.post(URL + "/ai", data={"answer": answer}).status_code == 422
         assert (
             client.post("/exercises/unknown/ai", data={"answer": "hello"}).status_code
@@ -94,12 +93,13 @@ def test_invalid_ai_input_never_calls_provider(client, answer):
     request.assert_not_called()
 
 
-def test_correct_answer_skips_provider_even_on_direct_ai_request(client):
-    """Skip inference for a perfect answer submitted directly to the AI endpoint."""
-    with patch("app.feedback.request_notes") as request:
+def test_correct_answer_also_requests_teaching_feedback(client):
+    """Allow the teacher to explain a useful construction for a perfect answer."""
+    with patch("app.tutor.request_tutor", side_effect=TimeoutError()) as request:
         response = client.post(URL + "/ai", data={"answer": FIRST_EXERCISE.transcript})
-    request.assert_not_called()
-    assert response.json()["status"] == "not_needed"
+    request.assert_called_once()
+    assert request.call_args.args[0]["difference_count"] == 0
+    assert response.json()["status"] == "timeout"
 
 
 def test_pending_ai_does_not_block_health_or_queue_another_inference(client):
@@ -113,7 +113,7 @@ def test_pending_ai_does_not_block_health_or_queue_another_inference(client):
         raise TimeoutError()
 
     with (
-        patch("app.feedback.request_notes", side_effect=wait_for_release),
+        patch("app.tutor.request_tutor", side_effect=wait_for_release),
         ThreadPoolExecutor() as pool,
     ):
         pending = pool.submit(client.post, URL + "/ai", data={"answer": ANSWER})

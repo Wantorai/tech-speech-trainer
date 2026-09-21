@@ -3,16 +3,16 @@
 const aiForm = document.querySelector("#ai-form");
 const aiButton = document.querySelector("#ai-button");
 const aiStatus = document.querySelector("#ai-status");
-const aiVocabulary = document.querySelector("#ai-vocabulary");
+const aiAnalysis = document.querySelector("#ai-analysis");
 
-/** Request notes for the submitted attempt while leaving its result visible. */
-async function requestVocabulary(event) {
+/** Request teaching feedback for the submitted attempt without changing its score. */
+async function requestTutor(event) {
   event.preventDefault();
   if (aiButton.disabled) return;
   aiButton.disabled = true;
   aiForm.setAttribute("aria-busy", "true");
-  aiStatus.textContent = "AI готовит пояснения. Первый запрос может занять больше времени…";
-  aiVocabulary.replaceChildren();
+  aiStatus.textContent = "AI разбирает ответ. Это может занять около минуты; первый запрос бывает дольше…";
+  aiAnalysis.replaceChildren();
   try {
     const response = await fetch(aiForm.action, {
       method: "POST",
@@ -22,17 +22,23 @@ async function requestVocabulary(event) {
     const data = await response.json();
     if (!response.ok && response.status !== 429) throw new Error("Request failed");
     aiStatus.textContent = data.message;
-    for (const note of data.notes) {
-      const word = document.createElement("dt");
-      word.lang = "en";
-      word.textContent = note.word;
-      const meaning = document.createElement("dd");
-      meaning.textContent = note.meaning_ru;
-      aiVocabulary.append(word, meaning);
+    const sections = [
+      ["summary_ru", "Твой ответ"], ["grammar_ru", "Грамматика и смысл"],
+      ["listening_ru", "На что обратить внимание на слух"],
+      ["example_en", "Похожий пример"], ["example_ru", "Перевод примера"],
+    ];
+    for (const [key, title] of sections) {
+      if (!data.analysis?.[key]) continue;
+      const heading = document.createElement("h4");
+      heading.textContent = title;
+      const text = document.createElement("p");
+      text.lang = key === "example_en" ? "en" : "ru";
+      text.textContent = data.analysis[key];
+      aiAnalysis.append(heading, text);
     }
-    aiButton.textContent = data.status === "ready" ? "Обновить AI-заметки" : "Попробовать ещё раз";
+    aiButton.textContent = data.status === "ready" ? "Спросить AI ещё раз" : "Попробовать ещё раз";
   } catch {
-    aiStatus.textContent = "Не удалось получить AI-заметки. Результат проверки сохранён. Попробуй позже.";
+    aiStatus.textContent = "Не удалось получить AI-разбор. Результат проверки сохранён. Попробуй позже.";
     aiButton.textContent = "Попробовать ещё раз";
   } finally {
     aiButton.disabled = false;
@@ -41,6 +47,6 @@ async function requestVocabulary(event) {
 }
 
 if (aiForm) {
-  aiForm.addEventListener("submit", requestVocabulary);
+  aiForm.addEventListener("submit", requestTutor);
   aiButton.hidden = false;
 }

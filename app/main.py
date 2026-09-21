@@ -11,7 +11,8 @@ from fastapi.templating import Jinja2Templates
 
 from app.comparison import normalize
 from app.exercises import FIRST_EXERCISE, get_exercise
-from app.feedback import build_feedback, vocabulary_words
+from app.feedback import build_feedback
+from app.tutor import ask_tutor
 
 APP_DIR = Path(__file__).resolve().parent
 
@@ -20,8 +21,7 @@ app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=APP_DIR / "templates")
 AI_LOCK = Lock()
 AI_MESSAGES = {
-    "ready": "Словарные заметки готовы.",
-    "not_needed": "Для этого ответа дополнительных словарных заметок нет.",
+    "ready": "Разбор преподавателя готов.",
     "unavailable": "AI недоступен. Проверь, что Ollama запущена и модель qwen3:4b установлена. Результат проверки сохранён.",
     "timeout": "AI не успел ответить. Можно попробовать позже. Результат проверки сохранён.",
     "invalid_response": "AI вернул ответ неподходящего формата. Результат проверки сохранён.",
@@ -104,7 +104,7 @@ async def check_answer(
             "answer": answer[:2000],
             "result": result,
             "feedback": feedback,
-            "ai_available": bool(result and vocabulary_words(result)),
+            "ai_available": result is not None,
             "error": error,
         },
         status_code=422 if error else 200,
@@ -114,7 +114,7 @@ async def check_answer(
 
 @app.post("/exercises/{exercise_id}/ai", include_in_schema=False)
 def ai_notes(exercise_id: str, answer: Annotated[str, Form()] = ""):
-    """Fetch optional notes in a worker thread without queueing concurrent inference."""
+    """Fetch tutor analysis in a worker thread without queueing concurrent inference."""
     exercise = get_exercise(exercise_id)
     if exercise is None:
         raise HTTPException(status_code=404, detail="Упражнение не найдено")
@@ -124,22 +124,19 @@ def ai_notes(exercise_id: str, answer: Annotated[str, Form()] = ""):
         )
     if not AI_LOCK.acquire(blocking=False):
         return JSONResponse(
-            {"status": "busy", "message": AI_MESSAGES["busy"], "notes": []},
+            {"status": "busy", "message": AI_MESSAGES["busy"], "analysis": None},
             status_code=429,
             headers={"Cache-Control": "no-store"},
         )
     try:
-        feedback = build_feedback(exercise.transcript, answer, use_ai=True)
+        feedback = ask_tutor(exercise, answer)
     finally:
         AI_LOCK.release()
     return JSONResponse(
         {
-            "status": feedback.ai_status,
-            "message": AI_MESSAGES[feedback.ai_status],
-            "notes": [
-                {"word": note.word, "meaning_ru": note.meaning_ru}
-                for note in feedback.vocabulary
-            ],
+            "status": feedback.status,
+            "message": AI_MESSAGES[feedback.status],
+            "analysis": feedback.analysis,
         },
         headers={"Cache-Control": "no-store"},
     )
