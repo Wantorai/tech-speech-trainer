@@ -269,3 +269,21 @@ Valid submissions are stored in `var/attempts.sqlite3` (created automatically). 
 `/history` lists attempts newest first, 20 per page, with UTC timestamps. Each record preserves the submitted answer, exercise text and translation, a SHA-256 version of exercise metadata, and the original deterministic comparison and explanations. Old scores are not recalculated when the exercise or scoring code changes. Audio bytes are not archived; the version identifies metadata, not the WAV contents. AI analysis and follow-up chats are not stored.
 
 Successful form submissions redirect to a saved result, so refreshing that page does not submit another attempt. An explicit new submission creates a new attempt. History is shared by the single local user; there are no accounts. To back it up, stop the application and copy the database file. Databases and personal answers are excluded from Git. Automated tests use isolated temporary databases.
+
+## Experimental exercise generation
+
+A CLI experiment generates new text drafts with local Ollama (`qwen3:4b`):
+
+```sh
+python -m scripts.generate_exercise --topic 1 --level 1 --count 2
+python -m scripts.generate_exercise --topic 3 --level 3 --seed 42
+python -m scripts.generate_exercise --topic 1 --level 4 --check-only
+```
+
+Topics: 1 = introductions and experience, 2 = projects and contributions, 3 = teamwork. Levels are 1–4; a batch contains at most six sequential requests. Without `--seed`, each run chooses a random seed. The seed selects a situation within the topic and controls model sampling (temperature 0.7). Fixed seeds aid investigation but do not guarantee identical responses across environments. No fine-tuning is performed.
+
+The model receives explicit word/sentence limits and a prepared example. Python validates the completed response, required fields, basic language characters, lengths, sentence counts, and exact normalized duplicates against the prepared catalog and previously accepted drafts. These checks cannot establish grammatical correctness, translation fidelity, topic relevance, or semantic novelty. Concurrent CLI runs do not coordinate duplicate checks or the web AI lock; run generation separately from web inference on a small CPU machine.
+
+Raw responses, inputs, prompt version, seeds, timings, and draft status are saved in ignored `var/generated-drafts/`. Future runs also record the schema and sampling settings. `validated_draft` means only that programmatic checks passed; language review remains pending. Rejected requests are logged without automatic retries, and the command exits with status 1 if any request fails. `--check-only` performs no inference or writes. The experiment does not yet synthesize audio or insert drafts into the playable catalog.
+
+On September 22, 2026, six local requests spanning all four levels produced four structurally valid drafts and two length rejections (18 words for Level 1 and 46 for Level 4). Latency ranged from 5.647 to 25.483 seconds, including a cold first request. Content inspection found awkward Russian in the Level 3 translation despite valid structure. This small development sample is not a quality benchmark. The next integration step is draft review and rejection, followed by synthesis and persistent catalog entries.

@@ -86,7 +86,12 @@ def prepare_tutor_input(exercise: Exercise, answer: str) -> dict:
 
 
 def request_tutor(
-    data: dict, *, timeout: float = 90, prompt: str = PROMPT, schema: dict = SCHEMA
+    data: dict,
+    *,
+    timeout: float = 90,
+    prompt: str = PROMPT,
+    schema: dict = SCHEMA,
+    options: dict | None = None,
 ) -> object:
     """Ask local Ollama for one complete tutor response without automatic retries."""
     payload = {
@@ -99,7 +104,7 @@ def request_tutor(
         "stream": False,
         "think": False,
         "keep_alive": "5m",
-        "options": OPTIONS,
+        "options": OPTIONS if options is None else options,
     }
     request = Request(
         "http://127.0.0.1:11434/api/chat",
