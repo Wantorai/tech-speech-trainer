@@ -24,8 +24,10 @@
       </select>
     </label>
     <button class="button" type="submit">Показать</button>
+    <button class="button" type="submit" formaction="{{ url_for('train') }}" formmethod="post">Начать тренировку</button>
     <a class="back-link" href="{{ url_for('catalog') }}">Сбросить</a>
   </form>
+  <p class="field-hint">Для тренировки выбери тему и уровень. По умолчанию — знакомство, уровень 1. Новые задания готовятся в фоне по одному.</p>
   <p class="field-hint">Найдено: {{ exercises | length }}. Оригинал и перевод откроются после твоего ответа.</p>
   <div class="catalog-grid">
     {% for exercise in exercises %}

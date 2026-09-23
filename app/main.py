@@ -1,25 +1,55 @@
 """Application entry point: uv run uvicorn app.main:app --reload."""
 
+from contextlib import asynccontextmanager
 from dataclasses import asdict
 from pathlib import Path
 from threading import Lock
 from typing import Annotated
 
 from fastapi import FastAPI, Form, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.concurrency import run_in_threadpool
 
+from app.background import INFERENCE, Generator
 from app.comparison import Comparison, Difference, normalize
-from app.exercises import EXERCISES, FIRST_EXERCISE, get_exercise, get_next_exercise
+from app.exercises import (
+    EXERCISES,
+    FIRST_EXERCISE,
+    TOPIC_ORDER,
+    get_exercise,
+    get_next_exercise,
+)
 from app.feedback import Feedback, build_feedback
 from app.history import get_attempt, list_attempts, save_attempt
+from app.library import (
+    audio_path,
+    choose_exercise,
+    cleanup_audio,
+    generated_exercises,
+    group_state,
+    mark_completed,
+    protect_exercise,
+)
 from app.tutor import ask_tutor
 from app.tutor_chat import ask_followup, validate_chat
 
 APP_DIR = Path(__file__).resolve().parent
 
-app = FastAPI(title="Tech Speech Trainer", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Recover interrupted audio cleanup and own one background generator per process."""
+    await run_in_threadpool(cleanup_audio)
+    app.state.generator = Generator()
+    try:
+        yield
+    finally:
+        await run_in_threadpool(app.state.generator.close)
+
+
+app = FastAPI(title="Tech Speech Trainer", version="0.1.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=APP_DIR / "templates")
 AI_LOCK = Lock()
@@ -56,7 +86,7 @@ LEVELS = (
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
-async def home(request: Request):
+def home(request: Request):
     """Render the introduction with training levels and catalog entry points."""
     return templates.TemplateResponse(
         request=request,
@@ -64,13 +94,13 @@ async def home(request: Request):
         context={
             "levels": LEVELS,
             "first_exercise_id": FIRST_EXERCISE.id,
-            "exercise_count": len(EXERCISES),
+            "exercise_count": len(EXERCISES) + len(generated_exercises()),
         },
     )
 
 
 @app.get("/exercises", response_class=HTMLResponse, include_in_schema=False)
-async def catalog(request: Request, topic: str = "", level: str = ""):
+def catalog(request: Request, topic: str = "", level: str = ""):
     """Render available exercises filtered by topic and level without answer text."""
     topics = tuple(dict.fromkeys(exercise.topic for exercise in EXERCISES))
     try:
@@ -80,9 +110,10 @@ async def catalog(request: Request, topic: str = "", level: str = ""):
             status_code=422, detail="Уровень должен быть числом."
         ) from None
     levels = sorted({exercise.level for exercise in EXERCISES})
+    available = (*EXERCISES, *generated_exercises())
     selected = [
         exercise
-        for exercise in EXERCISES
+        for exercise in available
         if (not topic or exercise.topic == topic)
         and (selected_level is None or exercise.level == selected_level)
     ]
@@ -95,7 +126,7 @@ async def catalog(request: Request, topic: str = "", level: str = ""):
             "levels": levels,
             "selected_topic": topic,
             "selected_level": selected_level,
-            "total": len(EXERCISES),
+            "total": len(available),
         },
     )
 
@@ -103,11 +134,18 @@ async def catalog(request: Request, topic: str = "", level: str = ""):
 @app.get(
     "/exercises/{exercise_id}", response_class=HTMLResponse, include_in_schema=False
 )
-def exercise_page(request: Request, exercise_id: str, attempt: int | None = None):
+def exercise_page(
+    request: Request,
+    exercise_id: str,
+    attempt: int | None = None,
+    training: bool = False,
+):
     """Render a fresh exercise or restore a saved result after submission."""
     exercise = get_exercise(exercise_id)
     if exercise is None:
         raise HTTPException(status_code=404, detail="Упражнение не найдено")
+    if exercise.id.startswith("gen-"):
+        protect_exercise(exercise)
     if attempt is not None:
         saved = get_attempt(attempt)
         if saved is None or saved["exercise"]["id"] != exercise_id:
@@ -131,6 +169,7 @@ def exercise_page(request: Request, exercise_id: str, attempt: int | None = None
             name="exercise.html",
             context={
                 "exercise": exercise,
+                "training": training,
                 "answer": saved["answer"],
                 "result": result,
                 "feedback": feedback,
@@ -143,7 +182,13 @@ def exercise_page(request: Request, exercise_id: str, attempt: int | None = None
     return templates.TemplateResponse(
         request=request,
         name="exercise.html",
-        context={"exercise": exercise, "answer": "", "result": None, "error": None},
+        context={
+            "exercise": exercise,
+            "answer": "",
+            "result": None,
+            "error": None,
+            "training": training,
+        },
     )
 
 
@@ -154,6 +199,7 @@ def check_answer(
     request: Request,
     exercise_id: str,
     answer: Annotated[str, Form()] = "",
+    training: bool = False,
 ):
     """Validate and save an answer, then redirect to its result or render errors."""
     exercise = get_exercise(exercise_id)
@@ -168,9 +214,12 @@ def check_answer(
     result = feedback.comparison if feedback else None
     if feedback is not None:
         attempt_id = save_attempt(exercise, answer, feedback)
+        mark_completed(exercise.id)
         return RedirectResponse(
             str(request.url_for("exercise_page", exercise_id=exercise_id))
-            + f"?attempt={attempt_id}#result",
+            + f"?attempt={attempt_id}"
+            + ("&training=1" if training else "")
+            + "#result",
             status_code=303,
             headers={"Cache-Control": "no-store"},
         )
@@ -179,6 +228,7 @@ def check_answer(
         name="exercise.html",
         context={
             "exercise": exercise,
+            "training": training,
             "answer": answer[:2000],
             "result": result,
             "feedback": feedback,
@@ -237,7 +287,8 @@ def ai_notes(exercise_id: str, answer: Annotated[str, Form()] = ""):
             headers={"Cache-Control": "no-store"},
         )
     try:
-        feedback = ask_tutor(exercise, answer)
+        with INFERENCE.use(teacher=True):
+            feedback = ask_tutor(exercise, answer)
     finally:
         AI_LOCK.release()
     return JSONResponse(
@@ -277,9 +328,10 @@ def ai_chat(
             headers={"Cache-Control": "no-store"},
         )
     try:
-        result = ask_followup(
-            exercise, answer, question, parsed_analysis, parsed_history
-        )
+        with INFERENCE.use(teacher=True):
+            result = ask_followup(
+                exercise, answer, question, parsed_analysis, parsed_history
+            )
     finally:
         AI_LOCK.release()
     return JSONResponse(
@@ -298,3 +350,52 @@ def ai_chat(
 async def health() -> dict[str, str]:
     """Report application liveness; AI availability is not checked here."""
     return {"status": "ok"}
+
+
+@app.post("/train", include_in_schema=False)
+def train(
+    request: Request,
+    topic: Annotated[str, Form()] = "",
+    level: Annotated[str, Form()] = "",
+):
+    """Select an immediate training item and request at most one background successor."""
+    topic = topic or TOPIC_ORDER[0]
+    try:
+        selected_level = int(level or "1")
+    except ValueError:
+        raise HTTPException(422, "Некорректный уровень") from None
+    if topic not in TOPIC_ORDER or selected_level not in range(1, 5):
+        raise HTTPException(422, "Неизвестная тема или уровень")
+    exercise = choose_exercise(topic, selected_level)
+    request.app.state.generator.request(topic, selected_level)
+    return RedirectResponse(
+        str(request.url_for("exercise_page", exercise_id=exercise.id)) + "?training=1",
+        status_code=303,
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/training-status", include_in_schema=False)
+def training_status(topic: str, level: int):
+    """Expose preparation status without starting jobs or revealing exercise answers."""
+    if topic not in TOPIC_ORDER or level not in range(1, 5):
+        raise HTTPException(422, "Неизвестная тема или уровень")
+    return JSONResponse(
+        {"status": group_state(topic, level)["status"]},
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/generated-audio/{identifier}.wav", include_in_schema=False)
+def generated_audio(identifier: str):
+    """Serve only published generated audio while hiding staging and unrelated files."""
+    exercise = get_exercise(identifier)
+    if exercise is None or not identifier.startswith("gen-"):
+        raise HTTPException(404, "Аудио не найдено")
+    try:
+        path = audio_path(identifier)
+    except ValueError:
+        raise HTTPException(404, "Аудио не найдено") from None
+    if not path.is_file():
+        raise HTTPException(404, "Аудио не найдено")
+    return FileResponse(path, media_type="audio/wav")

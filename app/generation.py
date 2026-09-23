@@ -84,7 +84,11 @@ def fingerprint(text: str) -> str:
 
 
 def validate_draft(
-    response: object, level: int, previous: tuple[str, ...] = ()
+    response: object,
+    level: int,
+    previous: tuple[str, ...] = (),
+    *,
+    relaxed: bool = False,
 ) -> dict:
     """Reject malformed, incomplete, out-of-bounds, or duplicate exercise drafts."""
     if (
@@ -108,12 +112,19 @@ def validate_draft(
     if not re.search(r"[А-Яа-яЁё]", draft["translation_ru"]):
         raise ValueError("Missing Russian translation")
     low, high, minimum, maximum = BOUNDS[level]
+    if relaxed:
+        low, high = {1: (7, 20), 2: (15, 40), 3: (30, 80), 4: (40, 110)}[level]
+        minimum, maximum = 1, 8
     if not low <= len(text.split()) <= high:
         raise ValueError(f"Expected {low}-{high} words, got {len(text.split())}")
     sentences = re.findall(r"[^.!?]+[.!?]", text)
     if text[-1] not in ".!?" or not minimum <= len(sentences) <= maximum:
         raise ValueError("Unexpected sentence count or unfinished sentence")
-    if level == 4 and (not sentences[0].endswith("?") or text.count("?") != 1):
+    if (
+        not relaxed
+        and level == 4
+        and (not sentences[0].endswith("?") or text.count("?") != 1)
+    ):
         raise ValueError("Level 4 must begin with one interviewer question")
     known = [item.transcript for item in EXERCISES] + list(previous)
     if fingerprint(text) in {fingerprint(item) for item in known}:

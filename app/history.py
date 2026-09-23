@@ -13,15 +13,20 @@ from app.exercises import Exercise
 from app.feedback import Feedback
 
 
-@contextmanager
-def connect():
-    """Open a short-lived transaction and initialize the local attempt table."""
-    path = Path(
+def database_path() -> Path:
+    """Resolve the shared local database independently of the working directory."""
+    return Path(
         os.environ.get(
             "TECHSPEECH_DB",
             Path(__file__).resolve().parent.parent / "var" / "attempts.sqlite3",
         )
     )
+
+
+@contextmanager
+def connect():
+    """Open a short-lived transaction and initialize the local attempt table."""
+    path = database_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path, timeout=10)
     connection.row_factory = sqlite3.Row

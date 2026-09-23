@@ -20,7 +20,7 @@ async function requestTutor(event) {
   if (aiButton.disabled || initialAnalysis) return;
   aiButton.disabled = true;
   aiForm.setAttribute("aria-busy", "true");
-  aiStatus.textContent = "AI разбирает ответ. Это может занять около минуты; первый запрос бывает дольше…";
+  aiStatus.textContent = "AI готовит разбор. Если сейчас создаётся упражнение, сначала дождёмся текущего этапа. Это может занять несколько минут…";
   aiAnalysis.replaceChildren();
   const controller = new AbortController();
   activeRequest = controller;

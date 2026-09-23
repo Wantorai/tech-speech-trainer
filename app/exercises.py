@@ -251,7 +251,11 @@ EXERCISES = tuple(
 
 
 def get_exercise(exercise_id: str) -> Exercise | None:
-    """Return the exercise matching the ID, or None if it is unknown."""
+    """Find a prepared or generated exercise without exposing absent records."""
+    if exercise_id.startswith("gen-"):
+        from app.library import find_generated
+
+        return find_generated(exercise_id)
     return next(
         (exercise for exercise in EXERCISES if exercise.id == exercise_id), None
     )

@@ -9,7 +9,7 @@
     <h1 id="hero-title">Знакомые слова.<br><span>Понятная речь.</span></h1>
     <p class="lead">Слышать английскую речь бывает сложнее, чем читать её.
       Начнём с коротких фраз о работе и постепенно перейдём к вопросам технического интервью.</p>
-    <a class="button" href="{{ url_for('exercise_page', exercise_id=first_exercise_id) }}">Начать тренировку <span aria-hidden="true">↗</span></a>
+    <form method="post" action="{{ url_for('train') }}"><button class="button" type="submit">Начать тренировку <span aria-hidden="true">↗</span></button></form>
     <a class="back-link catalog-link" href="{{ url_for('catalog') }}">Выбрать упражнение →</a>
   </div>
   <aside class="lesson-preview" aria-labelledby="preview-title">

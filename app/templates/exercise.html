@@ -8,14 +8,19 @@
     <h1>{{ exercise.title }}</h1>
     <p>Прослушай запись и напиши услышанное на английском. Можно переслушивать без ограничений.</p>
   </div>
+  {% if exercise.id.startswith('gen-') %}<p class="field-hint">Создано AI · формулировка или перевод могут быть неточными.</p>{% endif %}
+  {% if training %}
+  <p id="training-status" role="status" data-url="{{ url_for('training_status') }}?topic={{ exercise.topic | urlencode }}&amp;level={{ exercise.level }}">Следующее задание будет выбрано без ожидания. Проверяем подготовку нового…</p>
+  <script src="{{ url_for('static', path='/training.js') }}" defer></script>
+  {% endif %}
   <section class="practice-panel" aria-labelledby="audio-title">
     <h2 id="audio-title">1. Послушай</h2>
     <audio controls preload="metadata" aria-label="Английская запись упражнения">
-      <source src="{{ url_for('static', path='/' ~ exercise.audio_file) }}" type="audio/wav">
+      <source src="{{ url_for('generated_audio', identifier=exercise.id) if exercise.id.startswith('gen-') else url_for('static', path='/' ~ exercise.audio_file) }}" type="audio/wav">
       Ваш браузер не поддерживает аудиоплеер.
     </audio>
     <p class="field-hint">Американский английский · синтезированная речь</p>
-    <form method="post" action="{{ url_for('check_answer', exercise_id=exercise.id) }}#result">
+    <form method="post" action="{{ url_for('check_answer', exercise_id=exercise.id) }}{% if training %}?training=1{% endif %}#result">
       <h2><label for="answer">2. Запиши услышанное</label></h2>
       <textarea id="answer" name="answer" rows="4" maxlength="2000" required spellcheck="false" autocomplete="off" autocapitalize="off" lang="en" placeholder="Type what you hear…" aria-describedby="answer-hint{% if error %} answer-error{% endif %}" {% if error %}aria-invalid="true"{% endif %}>{{ answer }}</textarea>
       <p class="field-hint" id="answer-hint">Регистр и обычная пунктуация не влияют на результат. Незнакомое слово можно пропустить.</p>
@@ -85,9 +90,16 @@
       <p>Игнорируем регистр, пробелы и обычную пунктуацию. Поддерживаем однозначные сокращения (например, don't = do not) и целые числа от 0 до 20, записанные словом или цифрой. Апостроф внутри слова значим: we'll и well — разные слова. Неоднозначные 's и 'd не раскрываем.</p>
       <p>Это точность записи, а не оценка общего уровня английского или понимания смысла. Расхождения и пояснения к ним формирует Python. AI отдельно разбирает ответ и объясняет английский; он не меняет оценку и не оценивает твоё произношение по письменному ответу.</p>
     </details>
-    <a class="back-link retry-link" href="{{ url_for('exercise_page', exercise_id=exercise.id) }}">Повторить без подсказок ↗</a>
+    <a class="back-link retry-link" href="{{ url_for('exercise_page', exercise_id=exercise.id) }}{% if training %}?training=1{% endif %}">Повторить без подсказок ↗</a>
     <div class="exercise-navigation">
-      {% if next_exercise %}
+      {% if training %}
+      <form method="post" action="{{ url_for('train') }}">
+        <input type="hidden" name="topic" value="{{ exercise.topic }}">
+        <input type="hidden" name="level" value="{{ exercise.level }}">
+        <button class="button" type="submit">Следующее упражнение →</button>
+      </form>
+      <p class="field-hint">Та же тема и уровень. Новое задание, если готово; иначе — случайное из библиотеки.</p>
+      {% elif next_exercise %}
       <a class="button" href="{{ url_for('exercise_page', exercise_id=next_exercise.id) }}">Следующее упражнение →</a>
       <p class="field-hint">{{ next_exercise.title }} · Уровень {{ next_exercise.level }}. Переход идёт по порядку каталога.</p>
       {% else %}

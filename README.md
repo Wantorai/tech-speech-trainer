@@ -6,7 +6,7 @@ Listen to a short recording, type the English words you heard, and review the di
 
 ## Project status
 
-**Early development — 24 exercises with an experimental AI tutor.** The app includes a filterable catalog across three topics and four levels, bundled audio and Russian translations, deterministic comparison and explanations, an accuracy score, teacher feedback from local Ollama, and an ephemeral follow-up chat. Local SQLite attempt history is available; generated exercises and Docker packaging are upcoming.
+**Early development — 24 prepared exercises, automatic local generation, and an experimental AI tutor.** The app includes a filterable catalog across three topics and four levels, bundled audio and Russian translations, deterministic comparison and explanations, an accuracy score, teacher feedback from local Ollama, and an ephemeral follow-up chat. Local SQLite attempt history and background generation are available. The generated library holds up to 120 exercises; Docker packaging is upcoming.
 
 This is a learning project focused on Python development, practical AI integration, and a reproducible setup for reviewers.
 
@@ -23,11 +23,11 @@ Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Stop the foreground server 
 
 `uv sync` creates an isolated `.venv` and installs the versions recorded in `uv.lock`. Initial dependency downloads need internet access. The current app and bundled audio work locally without Ollama, a model download, an API key, or an external CDN.
 
-Select **Начать тренировку** for the first exercise, or **Выбрать упражнение** to open [the catalog](http://127.0.0.1:8000/exercises). Filter by topic and level, listen, type your answer, and submit it to reveal the transcript, prepared Russian translation, and comparison. Translation requires no AI request and appears after any valid submission. **Следующее упражнение** moves through catalog order, independently of filters; the final exercise links back to the catalog. A new exercise starts with an empty answer and chat. Valid submissions are saved automatically. Open **История попыток** to review earlier answers and scores.
+Select **Начать тренировку** to immediately open a random saved exercise (introductions, Level 1 by default). In [the catalog](http://127.0.0.1:8000/exercises), choose a topic and level and press the training button to keep that selection throughout the session. Listen and submit your transcription to reveal the original, Russian translation, and comparison. **Следующее упражнение** uses the new generated item if ready, otherwise a saved item with priority for unseen exercises. Ordinary catalog links retain the original sequential navigation. A new exercise starts with an empty answer and chat. Valid submissions are saved automatically; **История попыток** shows earlier results.
 
 The starter catalog contains 24 exercises: two exercises at each of four levels in each topic — introductions and responsibilities, projects and personal contributions, and teamwork. Catalog order groups each topic from Level 1 to Level 4. Existing exercise IDs and recordings are preserved. Audio and answer text are bundled, so the catalog is usable without a model running.
 
-After any valid answer, including a perfect match, select **Спросить AI** (Ask AI) below the comparison. Start Ollama and install `qwen3:4b` using the instructions below. The tutor explains relevant grammar and meaning, suggests a listening focus, and gives a related English example with a Russian translation. Empty optional sections are omitted. Feedback loads separately while the score and prepared translation remain visible. JavaScript is required only for this optional button. Failures leave the normal result intact. The tutor can make factual mistakes; it does not hear the recording or assess the learner's pronunciation.
+After any valid answer, including a perfect match, select **Спросить AI** (Ask AI) below the comparison. Start Ollama and install `qwen3:4b` using the instructions below. The tutor explains relevant grammar and meaning, suggests a listening focus, and gives a related English example with a Russian translation. Empty optional sections are omitted. Feedback loads separately while the score and prepared translation remain visible. JavaScript enables the tutor/chat and background status updates; playback, checking, and training navigation work without it. Failures leave the normal result intact. The tutor can make factual mistakes; it does not hear the recording or assess the learner's pronunciation.
 
 After a successful AI analysis, a mini-chat replaces the generation button. Ask a grammar question or request another example. Conversation messages remain on the current page only and disappear on a new submission, navigation, or reload. Each request supplies the initial analysis and the last two successful follow-ups; no chat sessions are saved on the server. Failed requests preserve the question for retry. Questions are limited to 400 characters, and longer context passages are abbreviated for the local model.
 
@@ -40,6 +40,9 @@ Available routes:
 | `/exercises/{exercise_id}` | GET: listening exercise; POST: compare the submitted answer |
 | `/exercises/{exercise_id}/ai` | POST: request optional teacher analysis for the submitted answer |
 | `/exercises/{exercise_id}/ai/chat` | POST: answer a contextual follow-up without saving a session |
+| `/train` | POST: immediate random selection and one background preparation |
+| `/training-status` | GET: preparation status for a topic and level; never starts generation |
+| `/generated-audio/{identifier}.wav` | GET: published local generated audio, including byte ranges |
 | `/health` | Application liveness: `{"status":"ok"}`; does not check AI availability |
 | `/docs` | Generated interactive API reference, currently showing the health endpoint |
 
@@ -238,7 +241,7 @@ The final `tutor-v2` prompt returned structurally valid responses for all four d
 
 The **Ask AI** button now provides experimental English tutor feedback, including explanations for correct answers. The next quality step is feedback from real learner practice. Python continues to own scoring. Text-based listening tips are not an assessment of the learner's pronunciation.
 
-Later milestones add AI-generated exercises by topic and level. Generated text and Russian translation will be checked, voiced with Piper, and saved before an exercise becomes playable. The 24 prepared exercises remain the starter catalog and fallback. We start with prompting and examples, without custom model training. Follow-up chat is available with temporary context; exercise generation is not yet implemented.
+The web app generates exercises by topic and level, checks technical constraints, synthesizes them with Piper, and saves complete text/audio pairs before making them playable. The 24 prepared exercises remain the starter catalog and fallback. We start with prompting and examples, without custom model training. Follow-up chat remains temporary. Generated English and translations can be imperfect and are marked as AI-created.
 
 - [x] Establish the repository foundation and document the intended scope.
 - [x] Evaluate and select a local model, recording quality and latency limitations.
@@ -251,7 +254,7 @@ Later milestones add AI-generated exercises by topic and level. Generated text a
 - [x] Expand the prepared catalog to 24 exercises across all four levels.
 - [x] Add ephemeral follow-up questions tied to the current exercise and attempt.
 - [x] Add topic/level filters and next-exercise navigation.
-- [ ] Generate, validate, synthesize, and persist new exercises by topic and level.
+- [x] Generate, validate, synthesize, and persist new exercises with a bounded background library.
 - [ ] Verify Docker setup and add automated checks and screenshots.
 
 ## Development notes
@@ -268,9 +271,9 @@ Valid submissions are stored in `var/attempts.sqlite3` (created automatically). 
 
 `/history` lists attempts newest first, 20 per page, with UTC timestamps. Each record preserves the submitted answer, exercise text and translation, a SHA-256 version of exercise metadata, and the original deterministic comparison and explanations. Old scores are not recalculated when the exercise or scoring code changes. Audio bytes are not archived; the version identifies metadata, not the WAV contents. AI analysis and follow-up chats are not stored.
 
-Successful form submissions redirect to a saved result, so refreshing that page does not submit another attempt. An explicit new submission creates a new attempt. History is shared by the single local user; there are no accounts. To back it up, stop the application and copy the database file. Databases and personal answers are excluded from Git. Automated tests use isolated temporary databases.
+Successful form submissions redirect to a saved result, so refreshing that page does not submit another attempt. An explicit new submission creates a new attempt. History is shared by the single local user; there are no accounts. To back it up, stop the application and copy the database file and its adjacent `generated-audio/` directory. Databases and personal answers are excluded from Git. Automated tests use isolated temporary databases.
 
-## Experimental exercise generation
+## Earlier generation experiment (CLI)
 
 A CLI experiment generates new text drafts with local Ollama (`qwen3:4b`):
 
@@ -286,4 +289,28 @@ The model receives explicit word/sentence limits and a prepared example. Python 
 
 Raw responses, inputs, prompt version, seeds, timings, and draft status are saved in ignored `var/generated-drafts/`. Future runs also record the schema and sampling settings. `validated_draft` means only that programmatic checks passed; language review remains pending. Rejected requests are logged without automatic retries, and the command exits with status 1 if any request fails. `--check-only` performs no inference or writes. The experiment does not yet synthesize audio or insert drafts into the playable catalog.
 
-On September 22, 2026, six local requests spanning all four levels produced four structurally valid drafts and two length rejections (18 words for Level 1 and 46 for Level 4). Latency ranged from 5.647 to 25.483 seconds, including a cold first request. Content inspection found awkward Russian in the Level 3 translation despite valid structure. This small development sample is not a quality benchmark. The next integration step is draft review and rejection, followed by synthesis and persistent catalog entries.
+On September 22, 2026, six local requests spanning all four levels produced four structurally valid drafts and two length rejections (18 words for Level 1 and 46 for Level 4). Latency ranged from 5.647 to 25.483 seconds, including a cold first request. Content inspection found awkward Russian in the Level 3 translation despite valid structure. This small development sample is not a quality benchmark. The web integration now accepts approximate lengths and publishes complete audio/text pairs automatically, as requested for listening practice. It has no manual draft approval screen; this earlier CLI remains a stricter diagnostic tool.
+
+## Background training and the generated library
+
+For automatic text generation and synthesis, start Ollama with `qwen3:4b` installed, then install the optional audio dependencies and voice:
+
+```sh
+uv sync --locked --group audio
+uv run --locked --group audio python -m piper.download_voices en_US-ljspeech-high --data-dir models/piper
+uv run --locked --group audio uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+The existing voice can be reused. `TECHSPEECH_VOICE` optionally overrides its ONNX path. Nothing downloads automatically during training. Without Ollama or Piper, saved exercises remain usable; the page reports that generation was unavailable. Run **one server process/worker for each database** and use one active training flow. Multiple server workers sharing this library are not supported. Avoid running the diagnostic generation CLI alongside training.
+
+A training transition selects an exercise immediately and starts at most one background job. Once a next item is ready, there is no continuous generation loop or batch prefill. Moving faster than generation uses the existing library. Changing topic releases an already prepared next item into the ordinary library; an in-flight job can finish for the previous topic. Leaving the page does not cancel an in-flight job, but no further jobs start without training transitions.
+
+A job sends theme, situation, target length, and an example to local Qwen3; checks the response; synthesizes the accepted transcript in a separate Piper process; and atomically publishes the text, translation, and audio reference in SQLite. Partial or failed audio is never offered as an exercise. Exact normalized duplicates are rejected. Practical word limits are 7–20, 15–40, 30–80, and 40–110 for levels 1–4; the prompt still requests the narrower prepared-catalog lengths. Basic English/Russian presence, completion, and size checks are required, but grammar, translation fidelity, and semantic novelty are not guaranteed. No manual approval is required.
+
+Each topic/level group holds **10 generated exercises** (120 total), plus the 24 permanent prepared items. At capacity, a successfully generated and synthesized replacement evicts the least recently completed eligible item. Uncompleted, current, and ready-next items are protected. Completion means a valid transcription was submitted, regardless of score. If no completed item is eligible, generation pauses. The most recently opened generated item in each topic/level is protected; multiple tabs are not independent training sessions. Replaced audio is deleted; attempt snapshots and scores remain. An unsuccessful job does not evict existing items. Interrupted-job orphan audio is cleaned up on startup.
+
+Generated records and model/seed/token metadata live in the same database as attempts (`var/attempts.sqlite3` by default). Audio lives in `generated-audio/` beside that database. These are local runtime data, not repository assets. The 120-item cap bounds the playable generated library, not attempt history, diagnostic CLI logs, or temporary synthesis output.
+
+Generation, Piper synthesis, and interactive teaching share one resource gate. Waiting teacher requests have priority before the next background stage; a running stage is allowed to finish. This can delay a teacher answer, while ordinary playback, checking, and navigation remain responsive. Piper subprocesses have a 120-second timeout; the Ollama request uses a 120-second network-operation timeout, not a strict total deadline. There are no automatic retries.
+
+Verification includes all 120 slots, protected-item eviction, preserved historical results, partial-audio cleanup, single-job admission, fallback navigation, and teacher priority. A real local run returned the initial saved exercise in 0.089 seconds and published its first AI/Piper successor in 23.98 seconds (244 input and 41 output tokens for the text request). These are observations, not latency guarantees. Generated playback, scoring, translation, and mobile/desktop rendering were checked in Chrome; generated audio and attempts also survived a server process restart.
