@@ -138,7 +138,7 @@ def test_generated_exercise_survives_restart_and_supports_attempts():
             f"/exercises/{item.id}?training=1", data={"answer": item.transcript}
         )
         assert "100%" in result.text and "training=1" in str(result.url)
-        assert "Следующее упражнение" in result.text
+        assert "Next exercise" in result.text
         audio = client.get(
             f"/generated-audio/{item.id}.wav", headers={"Range": "bytes=0-43"}
         )

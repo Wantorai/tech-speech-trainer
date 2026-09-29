@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.exercises import EXERCISES, get_next_exercise
-from app.main import APP_DIR, app
+from app.main import APP_DIR, app, label
 
 
 @pytest.fixture
@@ -25,7 +25,7 @@ def test_catalog_exposes_metadata_without_transcripts(client):
     assert response.status_code == 200
     for exercise in EXERCISES:
         assert f"/exercises/{exercise.id}" in response.text
-        assert exercise.title in response.text
+        assert label(exercise.title) in unescape(response.text)
         assert exercise.transcript not in unescape(response.text)
         assert exercise.translation_ru not in response.text
     assert 'href="http://testserver/exercises"' in client.get("/").text
@@ -40,11 +40,11 @@ def test_catalog_filters_accept_empty_values_and_combine_topic_with_level(client
         assert (f"/exercises/{exercise.id}" in response.text) == (
             exercise.topic == topic and exercise.level == 2
         )
-    assert "упражнений пока нет" in client.get("/exercises?level=5").text
+    assert "No exercises match" in client.get("/exercises?level=5").text
     for level in range(1, 5):
         page = client.get("/exercises", params={"level": level})
         assert sum(f"/exercises/{item.id}" in page.text for item in EXERCISES) == 6
-    assert "упражнений пока нет" in client.get("/exercises?topic=unknown").text
+    assert "No exercises match" in client.get("/exercises?topic=unknown").text
     assert client.get("/exercises?level=abc").status_code == 422
 
 
@@ -88,11 +88,11 @@ def test_navigation_stops_at_catalog_end(client):
             following = EXERCISES[index + 1]
             assert get_next_exercise(exercise.id) == following
             assert f"/exercises/{following.id}" in response.text
-            assert "Следующее упражнение" in response.text
+            assert "Next exercise" in response.text
         else:
             assert get_next_exercise(exercise.id) is None
-            assert "Это последнее упражнение" in response.text
-            assert "Следующее упражнение" not in response.text
+            assert "This is the last exercise" in response.text
+            assert "Next exercise" not in response.text
     assert get_next_exercise("unknown") is None
 
 

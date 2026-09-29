@@ -21,16 +21,20 @@ def response_for(notes):
 @pytest.mark.parametrize(
     "reference,answer,expected",
     [
-        ("We do not deploy.", "We do deploy.", "В оригинале здесь есть отрицание not"),
+        (
+            "We do not deploy.",
+            "We do deploy.",
+            "The transcript contains the negative word not",
+        ),
         (
             "We do deploy.",
             "We do not deploy.",
-            "В ответе здесь появилось отрицание not",
+            "The answer adds the negative word not",
         ),
         (
             "We do not deploy.",
             "We do now deploy.",
-            "В оригинале здесь есть отрицание not",
+            "The transcript contains the negative word not",
         ),
     ],
 )
@@ -64,7 +68,7 @@ def test_ai_is_opt_in_and_correct_answers_skip_it():
 def test_spelling_hint_keeps_uncertainty_and_score():
     """Keep a spelling hint tentative without forgiving the word replacement."""
     result = build_feedback("The deployment works.", "The deploymnet works.")
-    assert "Возможно" in result.explanations[0]
+    assert "may be a spelling mistake" in result.explanations[0]
     assert result.comparison.errors == 1
 
 

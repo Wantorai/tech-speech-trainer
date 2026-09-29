@@ -28,7 +28,7 @@ def test_check_renders_explanations_and_ai_for_the_submitted_answer(client):
         response = client.post(URL, data={"answer": ANSWER})
     request.assert_not_called()
     assert "91.7%" in response.text
-    assert "В ответе пропущено «frontend»." in response.text
+    assert "The answer is missing «frontend»." in response.text
     assert 'id="ai-form"' in response.text
     assert f'value="{ANSWER}"' in response.text
     assert FIRST_EXERCISE.translation_ru in response.text
@@ -77,7 +77,7 @@ def test_failures_return_readable_status_and_release_lock(client, error, status)
         for _ in range(2):
             response = client.post(URL + "/ai", data={"answer": ANSWER})
             assert response.json()["status"] == status
-            assert "Результат проверки сохранён" in response.json()["message"]
+            assert "Your score was saved" in response.json()["message"]
     assert "91.7%" in client.post(URL, data={"answer": ANSWER}).text
 
 

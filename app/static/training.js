@@ -4,11 +4,11 @@ const trainingStatus = document.querySelector("#training-status");
 let trainingTimer;
 let trainingStopped = false;
 const preparationMessages = {
-  generating: "Готовим новое упражнение в фоне. Можно продолжать заниматься.",
-  ready: "Новое упражнение готово — получишь его на следующем ходе.",
-  unavailable: "Новое упражнение пока не удалось подготовить. Следующее возьмём из библиотеки.",
-  full: "В этой группе достаточно непройденных заданий. Продолжаем из библиотеки.",
-  idle: "Следующее упражнение выберем из библиотеки без ожидания.",
+  generating: "Preparing a new exercise in the background. You can keep practising.",
+  ready: "The next exercise is ready.",
+  unavailable: "The new exercise is not available yet. The next one will come from the library.",
+  full: "This group has enough uncompleted exercises. We will continue from the library.",
+  idle: "The next exercise will be selected from the library without waiting.",
 };
 
 /** Poll preparation status without triggering new generation requests. */
@@ -18,9 +18,15 @@ async function refreshTrainingStatus() {
     const response = await fetch(trainingStatus.dataset.url, {cache: "no-store"});
     if (!response.ok) throw new Error("Status unavailable");
     const data = await response.json();
-    trainingStatus.textContent = preparationMessages[data.status] || preparationMessages.idle;
+    const icon = trainingStatus.querySelector(".status-icon");
+    const text = trainingStatus.querySelector(".training-status-text");
+    if (icon) {
+      icon.textContent = data.status === "ready" ? "✓" : "◷";
+      icon.className = `status-icon status-icon--${data.status === "ready" ? "ready" : "working"}`;
+    }
+    if (text) text.textContent = preparationMessages[data.status] || preparationMessages.idle;
   } catch {
-    trainingStatus.textContent = "Следующее упражнение доступно из библиотеки.";
+    trainingStatus.querySelector(".training-status-text").textContent = "The next exercise is available from the library.";
   }
   if (!trainingStopped) trainingTimer = setTimeout(refreshTrainingStatus, 4000);
 }

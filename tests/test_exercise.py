@@ -33,7 +33,7 @@ def test_correct_answer_reveals_original_and_perfect_score(client):
     response = client.post(URL, data={"answer": FIRST_EXERCISE.transcript})
     assert response.status_code == 200
     assert "100%" in response.text
-    assert "Всё совпало!" in response.text
+    assert "Everything matches!" in response.text
     assert FIRST_EXERCISE.transcript in response.text
     assert FIRST_EXERCISE.translation_ru in response.text
     assert response.headers["cache-control"] == "no-store"

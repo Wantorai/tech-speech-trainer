@@ -22,7 +22,7 @@ from app.exercises import (
     get_next_exercise,
 )
 from app.feedback import Feedback, build_feedback
-from app.history import get_attempt, list_attempts, save_attempt
+from app.history import completed_exercise_ids, get_attempt, list_attempts, save_attempt
 from app.library import (
     audio_path,
     choose_exercise,
@@ -52,35 +52,88 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Tech Speech Trainer", version="0.1.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=APP_DIR / "templates")
+
+LABELS = {
+    "Знакомство и опыт работы": "Introductions and Experience",
+    "Проекты и личный вклад": "Projects and Contributions",
+    "Работа в команде": "Teamwork",
+    "Давайте познакомимся": "Let's Get Acquainted",
+    "Ежедневные задачи": "Daily Responsibilities",
+    "Улучшение продукта": "Product Improvement",
+    "Изменения без перебоев": "Zero-Downtime Changes",
+    "Совместная работа": "Collaboration",
+    "Технические разногласия": "Technical Disagreements",
+    "Работа с дизайнером": "Working with a Designer",
+    "Первый опыт": "First Experience",
+    "Как устроена моя работа": "How My Work Is Organized",
+    "Освоение незнакомого кода": "Learning an Unfamiliar Codebase",
+    "Опыт для новой команды": "Experience for a New Team",
+    "Обучение под срок": "Learning Under a Deadline",
+    "Проверка формы": "Form Validation",
+    "Оценка результата": "Measuring the Result",
+    "Поиск причины замедления": "Finding the Cause of Slowness",
+    "Не всё сразу": "Prioritizing the Work",
+    "Измеримый личный вклад": "Measurable Contribution",
+    "Выпуск с ограничениями": "A Release with Constraints",
+    "Обсуждение требований": "Discussing Requirements",
+    "Почему выбран этот подход": "Why This Approach",
+    "Уточнение ожиданий": "Clarifying Expectations",
+    "Предупредить о задержке": "Reporting a Delay",
+    "Разногласие перед выпуском": "Disagreement Before Release",
+    "Передача незавершённой задачи": "Handing Over Unfinished Work",
+    "Рабочая ситуация · AI": "AI Work Scenario",
+}
+
+
+def label(value: str) -> str:
+    """Return an English UI label while preserving unknown generated text."""
+    return LABELS.get(value, value)
+
+
+def progress_snapshot() -> dict[str, int]:
+    """Calculate unique completed exercises against the current bounded library."""
+    available = (*EXERCISES, *generated_exercises())
+    available_ids = {item.id for item in available}
+    return {
+        "completed": len(completed_exercise_ids() & available_ids),
+        "available": len(available),
+        "generated": len(available) - len(EXERCISES),
+        "generated_limit": 120,
+        "permanent": len(EXERCISES),
+    }
+
+
+templates.env.filters["label"] = label
+templates.env.globals["progress"] = progress_snapshot
 AI_LOCK = Lock()
 AI_MESSAGES = {
-    "ready": "Разбор преподавателя готов.",
-    "unavailable": "AI недоступен. Проверь, что Ollama запущена и модель qwen3:4b установлена. Результат проверки сохранён.",
-    "timeout": "AI не успел ответить. Можно попробовать позже. Результат проверки сохранён.",
-    "invalid_response": "AI вернул ответ неподходящего формата. Результат проверки сохранён.",
-    "busy": "AI уже обрабатывает запрос. Попробуй немного позже.",
+    "ready": "Tutor review is ready.",
+    "unavailable": "AI is unavailable. Check that Ollama is running with qwen3:4b installed. Your score was saved.",
+    "timeout": "AI did not respond in time. You can try again later. Your score was saved.",
+    "invalid_response": "AI returned an unexpected response. Your score was saved.",
+    "busy": "AI is already processing another request. Try again shortly.",
 }
 
 LEVELS = (
     {
         "number": 1,
-        "title": "Короткая фраза",
-        "description": "1 предложение · 10–15 слов",
+        "title": "Short phrase",
+        "description": "1 sentence · 10–15 words",
     },
     {
         "number": 2,
-        "title": "Больше контекста",
-        "description": "2 предложения · 20–30 слов",
+        "title": "More context",
+        "description": "2 sentences · 20–30 words",
     },
     {
         "number": 3,
-        "title": "Развёрнутая мысль",
-        "description": "3–4 предложения · 40–60 слов",
+        "title": "A developed idea",
+        "description": "3–4 sentences · 40–60 words",
     },
     {
         "number": 4,
-        "title": "Как на интервью",
-        "description": "60–85 слов · вопрос, уточнение и дополнительное условие",
+        "title": "Like a real interview",
+        "description": "60–85 words · question, clarification, and condition",
     },
 )
 
@@ -106,9 +159,7 @@ def catalog(request: Request, topic: str = "", level: str = ""):
     try:
         selected_level = int(level) if level else None
     except ValueError:
-        raise HTTPException(
-            status_code=422, detail="Уровень должен быть числом."
-        ) from None
+        raise HTTPException(status_code=422, detail="Level must be a number.") from None
     levels = sorted({exercise.level for exercise in EXERCISES})
     available = (*EXERCISES, *generated_exercises())
     selected = [
@@ -143,13 +194,13 @@ def exercise_page(
     """Render a fresh exercise or restore a saved result after submission."""
     exercise = get_exercise(exercise_id)
     if exercise is None:
-        raise HTTPException(status_code=404, detail="Упражнение не найдено")
+        raise HTTPException(status_code=404, detail="Exercise not found")
     if exercise.id.startswith("gen-"):
         protect_exercise(exercise)
     if attempt is not None:
         saved = get_attempt(attempt)
         if saved is None or saved["exercise"]["id"] != exercise_id:
-            raise HTTPException(status_code=404, detail="Попытка не найдена")
+            raise HTTPException(status_code=404, detail="Attempt not found")
         if saved["exercise"] != asdict(exercise):
             return RedirectResponse(
                 request.url_for("attempt_detail", attempt_id=attempt), status_code=303
@@ -204,12 +255,12 @@ def check_answer(
     """Validate and save an answer, then redirect to its result or render errors."""
     exercise = get_exercise(exercise_id)
     if exercise is None:
-        raise HTTPException(status_code=404, detail="Упражнение не найдено")
+        raise HTTPException(status_code=404, detail="Exercise not found")
     error = None
     if len(answer) > 2000:
-        error = "Ответ слишком длинный. Максимум — 2000 символов."
+        error = "Your answer is too long. The maximum is 2,000 characters."
     elif not normalize(answer):
-        error = "Напиши хотя бы одно услышанное слово, затем нажми «Проверить»."
+        error = "Type at least one word you heard, then check your answer."
     feedback = None if error else build_feedback(exercise.transcript, answer)
     result = feedback.comparison if feedback else None
     if feedback is not None:
@@ -258,7 +309,7 @@ def attempt_detail(request: Request, attempt_id: int):
     """Show the original saved answer and feedback without running AI or rescoring."""
     attempt = get_attempt(attempt_id)
     if attempt is None:
-        raise HTTPException(status_code=404, detail="Попытка не найдена")
+        raise HTTPException(status_code=404, detail="Attempt not found")
     return templates.TemplateResponse(
         request=request,
         name="attempt.html",
@@ -275,11 +326,9 @@ def ai_notes(exercise_id: str, answer: Annotated[str, Form()] = ""):
     """Fetch tutor analysis in a worker thread without queueing concurrent inference."""
     exercise = get_exercise(exercise_id)
     if exercise is None:
-        raise HTTPException(status_code=404, detail="Упражнение не найдено")
+        raise HTTPException(status_code=404, detail="Exercise not found")
     if len(answer) > 2000 or not normalize(answer):
-        raise HTTPException(
-            status_code=422, detail="Отправь допустимый ответ на упражнение."
-        )
+        raise HTTPException(status_code=422, detail="Submit a valid exercise answer.")
     if not AI_LOCK.acquire(blocking=False):
         return JSONResponse(
             {"status": "busy", "message": AI_MESSAGES["busy"], "analysis": None},
@@ -312,11 +361,9 @@ def ai_chat(
     """Answer a contextual follow-up without persisting the conversation."""
     exercise = get_exercise(exercise_id)
     if exercise is None:
-        raise HTTPException(status_code=404, detail="Упражнение не найдено")
+        raise HTTPException(status_code=404, detail="Exercise not found")
     if len(answer) > 2000 or not normalize(answer):
-        raise HTTPException(
-            status_code=422, detail="Отправь допустимый ответ на упражнение."
-        )
+        raise HTTPException(status_code=422, detail="Submit a valid exercise answer.")
     try:
         parsed_analysis, parsed_history = validate_chat(question, analysis, history)
     except ValueError as error:
@@ -337,7 +384,7 @@ def ai_chat(
     return JSONResponse(
         {
             "status": result.status,
-            "message": "Ответ готов."
+            "message": "Reply is ready."
             if result.status == "ready"
             else AI_MESSAGES[result.status],
             "reply": result.analysis["answer_ru"] if result.analysis else None,
@@ -363,9 +410,9 @@ def train(
     try:
         selected_level = int(level or "1")
     except ValueError:
-        raise HTTPException(422, "Некорректный уровень") from None
+        raise HTTPException(422, "Invalid level") from None
     if topic not in TOPIC_ORDER or selected_level not in range(1, 5):
-        raise HTTPException(422, "Неизвестная тема или уровень")
+        raise HTTPException(422, "Unknown topic or level")
     exercise = choose_exercise(topic, selected_level)
     request.app.state.generator.request(topic, selected_level)
     return RedirectResponse(
@@ -379,7 +426,7 @@ def train(
 def training_status(topic: str, level: int):
     """Expose preparation status without starting jobs or revealing exercise answers."""
     if topic not in TOPIC_ORDER or level not in range(1, 5):
-        raise HTTPException(422, "Неизвестная тема или уровень")
+        raise HTTPException(422, "Unknown topic or level")
     return JSONResponse(
         {"status": group_state(topic, level)["status"]},
         headers={"Cache-Control": "no-store"},
@@ -391,11 +438,11 @@ def generated_audio(identifier: str):
     """Serve only published generated audio while hiding staging and unrelated files."""
     exercise = get_exercise(identifier)
     if exercise is None or not identifier.startswith("gen-"):
-        raise HTTPException(404, "Аудио не найдено")
+        raise HTTPException(404, "Audio not found")
     try:
         path = audio_path(identifier)
     except ValueError:
-        raise HTTPException(404, "Аудио не найдено") from None
+        raise HTTPException(404, "Audio not found") from None
     if not path.is_file():
-        raise HTTPException(404, "Аудио не найдено")
+        raise HTTPException(404, "Audio not found")
     return FileResponse(path, media_type="audio/wav")

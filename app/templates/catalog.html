@@ -1,44 +1,45 @@
 {% extends "base.html" %}
-{% block title %}Каталог упражнений — Tech Speech Trainer{% endblock %}
+{% block title %}Exercise Library — Tech Speech Trainer{% endblock %}
 {% block content %}
 <div class="exercise-page">
-  <a class="back-link" href="{{ url_for('home') }}">← На главную</a>
+  <a class="back-link" href="{{ url_for('home') }}">← Home</a>
   <div class="exercise-heading">
-    <p class="eyebrow">ПРАКТИКА ДЛЯ ТЕХНИЧЕСКОГО ИНТЕРВЬЮ</p>
-    <h1>Выбери упражнение</h1>
-    <p>От коротких фраз до развёрнутых вопросов интервьюера. Всего заданий: {{ total }}. В каждой теме — четыре уровня сложности.</p>
+    <p class="eyebrow">TECHNICAL INTERVIEW LISTENING PRACTICE</p>
+    <h1>Choose an exercise</h1>
+    <p>From short phrases to extended interviewer questions. {{ total }} exercises are currently available across four levels.</p>
   </div>
   <form class="catalog-filters" action="{{ url_for('catalog') }}" method="get">
-    <label>Тема
+    <label>Topic
       <select name="topic">
-        <option value="">Все темы</option>
-        {% if selected_topic and selected_topic not in topics %}<option value="{{ selected_topic }}" selected>Неизвестная тема</option>{% endif %}
-        {% for topic in topics %}<option value="{{ topic }}" {% if selected_topic == topic %}selected{% endif %}>{{ topic }}</option>{% endfor %}
+        <option value="">All topics</option>
+        {% if selected_topic and selected_topic not in topics %}<option value="{{ selected_topic }}" selected>Unknown topic</option>{% endif %}
+        {% for topic in topics %}<option value="{{ topic }}" {% if selected_topic == topic %}selected{% endif %}>{{ topic | label }}</option>{% endfor %}
       </select>
     </label>
-    <label>Уровень
+    <label>Level
       <select name="level">
-        <option value="" {% if selected_level is none %}selected{% endif %}>Все уровни</option>
-        {% if selected_level is not none and selected_level not in levels %}<option value="{{ selected_level }}" selected>Нет заданий этого уровня</option>{% endif %}
-        {% for level in levels %}<option value="{{ level }}" {% if selected_level == level %}selected{% endif %}>Уровень {{ level }}</option>{% endfor %}
+        <option value="" {% if selected_level is none %}selected{% endif %}>All levels</option>
+        {% if selected_level is not none and selected_level not in levels %}<option value="{{ selected_level }}" selected>No exercises at this level</option>{% endif %}
+        {% for level in levels %}<option value="{{ level }}" {% if selected_level == level %}selected{% endif %}>Level {{ level }}</option>{% endfor %}
       </select>
     </label>
-    <button class="button" type="submit">Показать</button>
-    <button class="button" type="submit" formaction="{{ url_for('train') }}" formmethod="post">Начать тренировку</button>
-    <a class="back-link" href="{{ url_for('catalog') }}">Сбросить</a>
+    <button class="button" type="submit">Apply filters</button>
+    <button class="button" type="submit" formaction="{{ url_for('train') }}" formmethod="post">Start training</button>
+    <a class="back-link" href="{{ url_for('catalog') }}">Reset</a>
   </form>
-  <p class="field-hint">Для тренировки выбери тему и уровень. По умолчанию — знакомство, уровень 1. Новые задания готовятся в фоне по одному.</p>
-  <p class="field-hint">Найдено: {{ exercises | length }}. Оригинал и перевод откроются после твоего ответа.</p>
+  <p class="field-hint">Choose a topic and level for training. The default is Introductions and Experience, Level 1. One new exercise is prepared in the background.</p>
+  <p class="field-hint">Showing {{ exercises | length }} exercises. The transcript and translation appear after you answer.</p>
   <div class="catalog-grid">
     {% for exercise in exercises %}
     <article class="level-card">
-      <span class="level-tag">Уровень {{ exercise.level }}</span>
-      <h2>{{ exercise.title }}</h2>
-      <p>{{ exercise.topic }}</p>
-      <a class="back-link" href="{{ url_for('exercise_page', exercise_id=exercise.id) }}">Открыть упражнение →</a>
+      <span class="level-tag">Level {{ exercise.level }}</span>
+      <h2>{{ exercise.title | label }}</h2>
+      <p>{{ exercise.topic | label }}</p>
+      <a class="back-link" href="{{ url_for('exercise_page', exercise_id=exercise.id) }}">Open exercise →</a>
     </article>
-    {% else %}<p>По этим фильтрам упражнений пока нет. Попробуй другую тему или уровень.</p>{% endfor %}
+    {% else %}<p>No exercises match these filters. Try another topic or level.</p>{% endfor %}
   </div>
-  <p class="field-hint">Проверенные ответы сохраняются в истории. Мини-чат очищается при переходе к другому заданию.</p>
+  <p class="field-hint">{{ progress().completed }} of {{ progress().available }} available exercises completed. Valid answers are saved to history; the mini-chat resets when you leave an exercise.</p>
+  <p class="field-hint">The generated library can hold up to {{ progress().generated_limit }} AI exercises, plus {{ progress().permanent }} permanent exercises.</p>
 </div>
 {% endblock %}

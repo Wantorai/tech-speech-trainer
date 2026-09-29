@@ -130,7 +130,7 @@ def test_chat_shares_inference_lock_with_initial_analysis(client):
 @pytest.mark.parametrize(
     "response",
     [
-        reply("English only"),
+        reply(""),
         reply("я" * 1201),
         {"done": True, "done_reason": "length"},
         [],

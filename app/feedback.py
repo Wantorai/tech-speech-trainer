@@ -53,19 +53,23 @@ class Feedback:
 def explain_difference(difference: Difference) -> str:
     """Describe a computed edit without guessing why the learner made it."""
     if difference.kind == "missing":
-        text = f"В ответе пропущено «{difference.expected}»."
+        text = f"The answer is missing «{difference.expected}»."
     elif difference.kind == "extra":
-        text = f"В ответе добавлено «{difference.heard}», которого нет в оригинале на этом месте."
+        text = f"The answer adds «{difference.heard}», which is not in the transcript at this position."
     elif difference.kind == "replacement":
-        text = f"В оригинале «{difference.expected}», в ответе — «{difference.heard}»."
+        text = f"The transcript says «{difference.expected}», while the answer says «{difference.heard}»."
     else:
         raise ValueError("Expected a difference, not a matching word")
     if difference.expected == "not":
-        text += " В оригинале здесь есть отрицание not; в ответе оно отсутствует."
+        text += " The transcript contains the negative word not, but the answer leaves it out."
     elif difference.heard == "not":
-        text += " В ответе здесь появилось отрицание not, которого нет в оригинале."
+        text += (
+            " The answer adds the negative word not, which is not in the transcript."
+        )
     if difference.possible_typo:
-        text += " Возможно, это опечатка или ошибка написания; по записи нельзя установить причину."
+        text += (
+            " This may be a spelling mistake; typed text cannot establish the cause."
+        )
     return text
 
 

@@ -23,11 +23,11 @@ Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Stop the foreground server 
 
 `uv sync` creates an isolated `.venv` and installs the versions recorded in `uv.lock`. Initial dependency downloads need internet access. The current app and bundled audio work locally without Ollama, a model download, an API key, or an external CDN.
 
-Select **Начать тренировку** to immediately open a random saved exercise (introductions, Level 1 by default). In [the catalog](http://127.0.0.1:8000/exercises), choose a topic and level and press the training button to keep that selection throughout the session. Listen and submit your transcription to reveal the original, Russian translation, and comparison. **Следующее упражнение** uses the new generated item if ready, otherwise a saved item with priority for unseen exercises. Ordinary catalog links retain the original sequential navigation. A new exercise starts with an empty answer and chat. Valid submissions are saved automatically; **История попыток** shows earlier results.
+Select **Start training** to immediately open a random saved exercise (introductions, Level 1 by default). In [the catalog](http://127.0.0.1:8000/exercises), choose a topic and level and press the training button to keep that selection throughout the session. Listen and submit your transcription to reveal the original, Russian translation, and comparison. **Next exercise** uses the new generated item if ready, otherwise a saved item with priority for unseen exercises. Ordinary catalog links retain the original sequential navigation. A new exercise starts with an empty answer and chat. Valid submissions are saved automatically; **Attempt history** shows earlier results.
 
 The starter catalog contains 24 exercises: two exercises at each of four levels in each topic — introductions and responsibilities, projects and personal contributions, and teamwork. Catalog order groups each topic from Level 1 to Level 4. Existing exercise IDs and recordings are preserved. Audio and answer text are bundled, so the catalog is usable without a model running.
 
-After any valid answer, including a perfect match, select **Спросить AI** (Ask AI) below the comparison. Start Ollama and install `qwen3:4b` using the instructions below. The tutor explains relevant grammar and meaning, suggests a listening focus, and gives a related English example with a Russian translation. Empty optional sections are omitted. Feedback loads separately while the score and prepared translation remain visible. JavaScript enables the tutor/chat and background status updates; playback, checking, and training navigation work without it. Failures leave the normal result intact. The tutor can make factual mistakes; it does not hear the recording or assess the learner's pronunciation.
+After any valid answer, including a perfect match, select **Ask AI** below the comparison. Start Ollama and install `qwen3:4b` using the instructions below. The tutor explains relevant grammar and meaning, suggests a listening focus, and gives a related English example. The prepared exercise translation remains Russian. Empty optional sections are omitted. Feedback loads separately while the score remains visible. JavaScript enables the tutor/chat and background status updates; playback, checking, and training navigation work without it. Failures leave the normal result intact. The tutor can make factual mistakes; it does not hear the recording or assess the learner's pronunciation.
 
 After a successful AI analysis, a mini-chat replaces the generation button. Ask a grammar question or request another example. Conversation messages remain on the current page only and disappear on a new submission, navigation, or reload. Each request supplies the initial analysis and the last two successful follow-ups; no chat sessions are saved on the server. Failed requests preserve the question for retry. Questions are limited to 400 characters, and longer context passages are abbreviated for the local model.
 
@@ -107,7 +107,7 @@ The optional `audio` dependency group is needed only for generation. Model files
 2. Listen to an English recording, replaying it as needed.
 3. Type what you heard in English.
 4. Review the original transcript, missing or substituted words, and possible spelling mistakes.
-5. Read explanations in Russian and continue to the next exercise.
+5. Read the explanations and Russian translation, then continue to the next exercise.
 
 Text comparison will provide a reproducible measure of transcription accuracy. AI will explain differences and vocabulary. Written answers alone cannot reliably distinguish a typing mistake from a listening mistake, so feedback will acknowledge that uncertainty.
 
@@ -123,7 +123,7 @@ Initial topics will cover introductions and responsibilities, previous projects 
 ## First release scope
 
 - A single local user, without registration.
-- Russian interface and feedback, with English recordings and transcripts.
+- English interface and feedback, with English recordings and transcripts and a Russian exercise translation.
 - A reviewed set of 24 exercises: three topics, four levels, two exercises per combination.
 - Saved audio files for repeated playback.
 - Text comparison and AI-assisted feedback.
@@ -142,7 +142,7 @@ Initial topics will cover introductions and responsibilities, previous projects 
 | Quality checks | pytest, Ruff, and GitHub Actions |
 | Packaging | Docker and Docker Compose |
 
-Qwen3 4B through Ollama is selected for the first educational release, with the measured limitations below. The application computes text differences and accuracy in Python; the model is intended to provide supplementary explanations in Russian. A separate experiment evaluates explanations of those computed differences. Text feedback and speech generation are separate capabilities and may use different providers.
+Qwen3 4B through Ollama is selected for the first educational release, with the measured limitations below. The application computes text differences and accuracy in Python; the model provides supplementary English explanations. A separate experiment evaluates explanations of those computed differences. Text feedback and speech generation are separate capabilities and may use different providers.
 
 The evaluation uses prepared examples covering correct answers, spelling mistakes, omissions, word substitutions, and missing negation. A demo mode without an AI key is still under consideration.
 
@@ -196,7 +196,7 @@ Manual review accepted some longer quoted spans that failed the strict pair chec
 
 ## Evaluate explanations of computed differences
 
-The next experiment passes the actual differences from `app.comparison` to Qwen3 4B. The model returns a Russian explanation for each difference ID. Python rejects missing, duplicate, or unknown IDs and malformed responses. Correct answers and empty inputs do not trigger inference. This experiment is separate from the web application.
+The next experiment passes the actual differences from `app.comparison` to Qwen3 4B. The model returns an English explanation for each difference ID. Python rejects missing, duplicate, or unknown IDs and malformed responses. Correct answers and empty inputs do not trigger inference. This experiment is separate from the web application.
 
 Run from the repository root, using the same local Ollama setup described above:
 

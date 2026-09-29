@@ -1,43 +1,44 @@
 {% extends "base.html" %}
 
-{% block title %}Английский на слух — Tech Speech Trainer{% endblock %}
+{% block title %}English Listening — Tech Speech Trainer{% endblock %}
 
 {% block content %}
 <section class="hero" aria-labelledby="hero-title">
   <div>
-    <p class="eyebrow">ШАГ ЗА ШАГОМ К УВЕРЕННОМУ ИНТЕРВЬЮ</p>
-    <h1 id="hero-title">Знакомые слова.<br><span>Понятная речь.</span></h1>
-    <p class="lead">Слышать английскую речь бывает сложнее, чем читать её.
-      Начнём с коротких фраз о работе и постепенно перейдём к вопросам технического интервью.</p>
-    <form method="post" action="{{ url_for('train') }}"><button class="button" type="submit">Начать тренировку <span aria-hidden="true">↗</span></button></form>
-    <a class="back-link catalog-link" href="{{ url_for('catalog') }}">Выбрать упражнение →</a>
+    <p class="eyebrow">STEP BY STEP TOWARDS A CONFIDENT INTERVIEW</p>
+    <h1 id="hero-title">Familiar words.<br><span>Clearer speech.</span></h1>
+    <p class="lead">Understanding spoken English can be harder than reading it.
+      Start with short work-related phrases and move towards technical interview questions.</p>
+    <form method="post" action="{{ url_for('train') }}"><button class="button" type="submit">Start training <span aria-hidden="true">↗</span></button></form>
+    <a class="back-link catalog-link" href="{{ url_for('catalog') }}">Choose an exercise →</a>
   </div>
   <aside class="lesson-preview" aria-labelledby="preview-title">
-    <div class="preview-top"><span class="label">ПЕРВАЯ ТЕМА</span><span class="level-tag">Уровень 1</span></div>
+    <div class="preview-top"><span class="label">FIRST TOPIC</span><span class="level-tag">Level 1</span></div>
     <div class="soundwave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-    <h2 id="preview-title">Давайте познакомимся</h2>
-    <p>Твоя роль, команда и ежедневные задачи.<br>Одна фраза за раз.</p>
-    <div class="notice"><span class="status-dot" aria-hidden="true"></span>В каталоге упражнений: {{ exercise_count }}</div>
-    <p class="preview-note">Послушай запись, запиши услышанное и сравни с оригиналом.</p>
+    <h2 id="preview-title">Let's get acquainted</h2>
+    <p>Your role, team, and daily responsibilities.<br>One phrase at a time.</p>
+    <div class="notice"><span class="status-dot" aria-hidden="true"></span>{{ exercise_count }} exercises in the library</div>
+    <p class="progress-line">{{ progress().completed }} of {{ progress().available }} completed · Up to {{ progress().permanent }} permanent + {{ progress().generated_limit }} AI exercises</p>
+    <p class="preview-note">Listen, type what you hear, and compare it with the transcript.</p>
   </aside>
 </section>
 
 <section class="how-section" id="how-it-works" aria-labelledby="how-title">
-  <p class="eyebrow">ПРОСТОЙ РИТМ ЗАНЯТИЯ</p>
-  <h2 id="how-title">Сначала услышать. Потом разобраться.</h2>
+  <p class="eyebrow">A SIMPLE PRACTICE RHYTHM</p>
+  <h2 id="how-title">Listen first. Understand next.</h2>
   <ol class="steps">
-    <li><span class="step-number" aria-hidden="true">01</span><h3>Слушай</h3><p>Короткая запись на английском. Можно переслушать столько раз, сколько нужно.</p></li>
-    <li><span class="step-number" aria-hidden="true">02</span><h3>Записывай</h3><p>Напиши услышанное на английском. Если слово не знакомо, запиши то, что удалось разобрать.</p></li>
-    <li><span class="step-number" aria-hidden="true">03</span><h3>Разбирайся</h3><p>Сравни с оригиналом и прочитай объяснения на русском. Ошибки подскажут, что повторить.</p></li>
+    <li><span class="step-number" aria-hidden="true">01</span><h3>Listen</h3><p>A short English recording. Replay it as many times as you need.</p></li>
+    <li><span class="step-number" aria-hidden="true">02</span><h3>Type</h3><p>Write what you heard in English. If a word is unfamiliar, type your best guess.</p></li>
+    <li><span class="step-number" aria-hidden="true">03</span><h3>Review</h3><p>Compare your answer with the transcript and translation. Use the differences to choose what to practise.</p></li>
   </ol>
 </section>
 
 <section class="levels-section" aria-labelledby="levels-title">
-  <div class="section-heading"><h2 id="levels-title">От одной фразы до настоящего вопроса</h2><p>Четыре уровня сложности</p></div>
+  <div class="section-heading"><h2 id="levels-title">From one phrase to a real interview question</h2><p>Four difficulty levels</p></div>
   <div class="levels">
     {% for level in levels %}
     <article class="level-card">
-      <span class="level-number">УРОВЕНЬ {{ level.number }}</span>
+      <span class="level-number">LEVEL {{ level.number }}</span>
       <h3>{{ level.title }}</h3>
       <p>{{ level.description }}</p>
     </article>

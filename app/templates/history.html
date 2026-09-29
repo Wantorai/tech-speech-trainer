@@ -1,20 +1,21 @@
 {% extends "base.html" %}
-{% block title %}История попыток — Tech Speech Trainer{% endblock %}
+{% block title %}Attempt History — Tech Speech Trainer{% endblock %}
 {% block content %}
 <div class="exercise-page">
-  <h1>История попыток</h1>
-  <p>Ответы сохраняются на этом компьютере. Время указано в UTC. AI-разбор и мини-чат не сохраняются.</p>
+  <h1>Attempt history</h1>
+  <p>Answers are saved on this computer. Times are shown in UTC. AI reviews and mini-chats are not saved.</p>
+  <p class="progress-line">Progress: <strong>{{ progress().completed }} of {{ progress().available }}</strong> available exercises completed · Library limit: {{ progress().permanent }} permanent + {{ progress().generated_limit }} AI exercises</p>
   {% for attempt in attempts %}
   <section class="practice-panel">
-    <p class="eyebrow">{{ attempt.exercise.topic }} · Уровень {{ attempt.exercise.level }}</p>
-    <h2><a href="{{ url_for('attempt_detail', attempt_id=attempt.id) }}">{{ attempt.exercise.title }}</a></h2>
+    <p class="eyebrow">{{ attempt.exercise.topic | label }} · Level {{ attempt.exercise.level }}</p>
+    <h2><a href="{{ url_for('attempt_detail', attempt_id=attempt.id) }}">{{ attempt.exercise.title | label }}</a></h2>
     <p><strong>{{ '%g' | format(attempt.feedback.comparison.score) }}%</strong> · <time datetime="{{ attempt.created_at }}">{{ attempt.created_at }}</time></p>
   </section>
-  {% else %}<p>Здесь пока нет попыток. Пройди упражнение, чтобы сохранить первый результат.</p>{% endfor %}
-  <nav aria-label="Страницы истории">
-    {% if page > 1 %}<a class="back-link" href="{{ url_for('history_page') }}?page={{ page - 1 }}">← Более новые</a>{% endif %}
-    {% if has_next %}<a class="back-link" href="{{ url_for('history_page') }}?page={{ page + 1 }}">Более старые →</a>{% endif %}
+  {% else %}<p>No attempts yet. Complete an exercise to save your first result.</p>{% endfor %}
+  <nav aria-label="History pages">
+    {% if page > 1 %}<a class="back-link" href="{{ url_for('history_page') }}?page={{ page - 1 }}">← Newer</a>{% endif %}
+    {% if has_next %}<a class="back-link" href="{{ url_for('history_page') }}?page={{ page + 1 }}">Older →</a>{% endif %}
   </nav>
-  <a class="back-link" href="{{ url_for('catalog') }}">К упражнениям →</a>
+  <a class="back-link" href="{{ url_for('catalog') }}">Exercise library →</a>
 </div>
 {% endblock %}

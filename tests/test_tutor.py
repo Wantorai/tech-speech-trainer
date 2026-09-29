@@ -67,7 +67,7 @@ def test_optional_teaching_sections_can_be_empty():
         {**VALID, "grammar_ru": ["wrong"]},
         {**VALID, "listening_ru": "x" * 801},
         {**VALID, "example_en": "Только русский"},
-        {**VALID, "example_ru": "English"},
+        {**VALID, "example_ru": ""},
         {key: value for key, value in VALID.items() if key != "summary_ru"},
     ],
 )

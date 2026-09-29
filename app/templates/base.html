@@ -1,25 +1,25 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Практика английского на слух для разработчиков: от знакомства до технического интервью.">
+    <meta name="description" content="English listening practice for software developers preparing for technical interviews.">
     <title>{% block title %}Tech Speech Trainer{% endblock %}</title>
     <link rel="icon" href="{{ url_for('static', path='/favicon.svg') }}" type="image/svg+xml">
     <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
   </head>
   <body>
-    <a class="skip-link" href="#main">К содержимому</a>
+    <a class="skip-link" href="#main">Skip to content</a>
     <div class="page">
       <header class="header">
-        <a class="brand" href="{{ url_for('home') }}" aria-label="Tech Speech Trainer — главная">
+        <a class="brand" href="{{ url_for('home') }}" aria-label="Tech Speech Trainer — home">
           <img src="{{ url_for('static', path='/favicon.svg') }}" width="36" height="36" alt="">
           <span>tech speech<span class="brand-subtitle">LISTEN. UNDERSTAND. GROW.</span></span>
         </a>
-        <a class="back-link" href="{{ url_for('history_page') }}">История попыток</a>
+        <a class="back-link" href="{{ url_for('history_page') }}">Attempt history</a>
       </header>
       <main id="main">{% block content %}{% endblock %}</main>
-      <footer class="footer">Tech Speech Trainer · Учимся понимать речь на технических интервью.</footer>
+      <footer class="footer">Tech Speech Trainer · Understand technical interview English.</footer>
     </div>
   </body>
 </html>

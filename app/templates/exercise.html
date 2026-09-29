@@ -1,83 +1,84 @@
 {% extends "base.html" %}
-{% block title %}{{ exercise.title }} — Tech Speech Trainer{% endblock %}
+{% block title %}{{ exercise.title | label }} — Tech Speech Trainer{% endblock %}
 {% block content %}
 <div class="exercise-page">
-  <a class="back-link" href="{{ url_for('catalog') }}">← К упражнениям</a>
+  <a class="back-link" href="{{ url_for('catalog') }}">← Exercise library</a>
   <div class="exercise-heading">
-    <p class="eyebrow">{{ exercise.topic }} · Уровень {{ exercise.level }}</p>
-    <h1>{{ exercise.title }}</h1>
-    <p>Прослушай запись и напиши услышанное на английском. Можно переслушивать без ограничений.</p>
+    <p class="eyebrow">{{ exercise.topic | label }} · Level {{ exercise.level }}</p>
+    <h1>{{ exercise.title | label }}</h1>
+    <p>Listen to the recording and type what you hear in English. You can replay it as many times as you need.</p>
   </div>
-  {% if exercise.id.startswith('gen-') %}<p class="field-hint">Создано AI · формулировка или перевод могут быть неточными.</p>{% endif %}
+  <p class="progress-line">Progress: <strong>{{ progress().completed }} of {{ progress().available }}</strong> available exercises completed · Library limit: {{ progress().permanent }} permanent + {{ progress().generated_limit }} AI exercises</p>
+  {% if exercise.id.startswith('gen-') %}<p class="field-hint">Created by AI · wording or translation may be imperfect.</p>{% endif %}
   {% if training %}
-  <p id="training-status" role="status" data-url="{{ url_for('training_status') }}?topic={{ exercise.topic | urlencode }}&amp;level={{ exercise.level }}">Следующее задание будет выбрано без ожидания. Проверяем подготовку нового…</p>
+  <p id="training-status" role="status" data-url="{{ url_for('training_status') }}?topic={{ exercise.topic | urlencode }}&amp;level={{ exercise.level }}"><span class="status-icon status-icon--working" aria-hidden="true">◷</span><span class="training-status-text">Preparing the next exercise…</span></p>
   <script src="{{ url_for('static', path='/training.js') }}" defer></script>
   {% endif %}
   <section class="practice-panel" aria-labelledby="audio-title">
-    <h2 id="audio-title">1. Послушай</h2>
-    <audio controls preload="metadata" aria-label="Английская запись упражнения">
+    <h2 id="audio-title">1. Listen</h2>
+    <audio controls preload="metadata" aria-label="English exercise recording">
       <source src="{{ url_for('generated_audio', identifier=exercise.id) if exercise.id.startswith('gen-') else url_for('static', path='/' ~ exercise.audio_file) }}" type="audio/wav">
-      Ваш браузер не поддерживает аудиоплеер.
+      Your browser does not support the audio player.
     </audio>
-    <p class="field-hint">Американский английский · синтезированная речь</p>
+    <p class="field-hint">American English · synthesized speech</p>
     <form method="post" action="{{ url_for('check_answer', exercise_id=exercise.id) }}{% if training %}?training=1{% endif %}#result">
-      <h2><label for="answer">2. Запиши услышанное</label></h2>
+      <h2><label for="answer">2. Type what you heard</label></h2>
       <textarea id="answer" name="answer" rows="4" maxlength="2000" required spellcheck="false" autocomplete="off" autocapitalize="off" lang="en" placeholder="Type what you hear…" aria-describedby="answer-hint{% if error %} answer-error{% endif %}" {% if error %}aria-invalid="true"{% endif %}>{{ answer }}</textarea>
-      <p class="field-hint" id="answer-hint">Регистр и обычная пунктуация не влияют на результат. Незнакомое слово можно пропустить.</p>
+      <p class="field-hint" id="answer-hint">Case and ordinary punctuation do not affect the score. You can leave an unfamiliar word out.</p>
       {% if error %}<div id="result"><p class="form-error" id="answer-error" role="alert">{{ error }}</p></div>{% endif %}
-      <button class="button" type="submit">{{ 'Проверить ещё раз' if result else 'Проверить' }} <span aria-hidden="true">→</span></button>
+      <button class="button" type="submit">{{ 'Check again' if result else 'Check answer' }} <span aria-hidden="true">→</span></button>
     </form>
   </section>
 
   {% if result %}
   <section class="result-panel" id="result" aria-labelledby="result-title">
     <div class="result-heading">
-      <div><p class="eyebrow">РЕЗУЛЬТАТ ПОПЫТКИ</p><h2 id="result-title">{{ 'Всё совпало!' if result.errors == 0 else 'Разберём, что получилось' }}</h2></div>
-      <div class="score"><strong>{{ '%g' | format(result.score) }}%</strong><span>точность записи</span></div>
+      <div><p class="eyebrow">ATTEMPT RESULT</p><h2 id="result-title">{{ 'Everything matches!' if result.errors == 0 else 'Let’s review the result' }}</h2></div>
+      <div class="score"><strong>{{ '%g' | format(result.score) }}%</strong><span>transcription accuracy</span></div>
     </div>
-    <p>Совпало слов: <strong>{{ result.matches }} из {{ result.reference_count }}</strong>. Расхождений: <strong>{{ result.errors }}</strong>.</p>
-    <h3>Оригинал</h3>
+    <p>Matched words: <strong>{{ result.matches }} of {{ result.reference_count }}</strong>. Differences: <strong>{{ result.errors }}</strong>.</p>
+    <h3>Transcript</h3>
     <blockquote class="transcript" lang="en">{{ exercise.transcript }}</blockquote>
-    <h3>Перевод на русский</h3>
+    <h3>Russian translation</h3>
     <p lang="ru">{{ exercise.translation_ru }}</p>
-    <h3>Сравнение по словам</h3>
-    <p class="field-hint">Слова приведены к единому виду для сравнения. Пропуски, замены и лишние слова отмечены отдельно.</p>
+    <h3>Word comparison</h3>
+    <p class="field-hint">Words are normalized for comparison. Missing, replaced, and extra words are marked separately.</p>
     <div class="word-comparison" lang="en">
       {% for item in result.alignment %}
       <span class="word word-{{ item.kind }}">
-        {% if item.kind == 'match' %}<span class="sr-only" lang="ru">Совпало: </span>{{ item.expected }}
-        {% elif item.kind == 'missing' %}<span class="word-label" lang="ru">Пропуск</span>{{ item.expected }}
-        {% elif item.kind == 'extra' %}<span class="word-label" lang="ru">Лишнее</span>{{ item.heard }}
-        {% else %}<span class="word-label" lang="ru">Замена</span>{{ item.heard }} → {{ item.expected }}{% endif %}
+        {% if item.kind == 'match' %}<span class="sr-only">Match: </span>{{ item.expected }}
+        {% elif item.kind == 'missing' %}<span class="word-label">Missing</span>{{ item.expected }}
+        {% elif item.kind == 'extra' %}<span class="word-label">Extra</span>{{ item.heard }}
+        {% else %}<span class="word-label">Replacement</span>{{ item.heard }} → {{ item.expected }}{% endif %}
       </span>
       {% endfor %}
     </div>
     {% if result.differences %}
     <ul class="difference-list">
       {% for explanation in feedback.explanations %}
-      <li>{{ explanation }}</li>
+      <li lang="en">{{ explanation }}</li>
       {% endfor %}
     </ul>
     {% endif %}
     {% if ai_available %}
     <section class="ai-notes" aria-labelledby="ai-title">
-      <h3 id="ai-title">Разбор с преподавателем AI</h3>
-      <p class="field-hint">Грамматика, смысл и подсказки для повторного прослушивания. Экспериментальный AI может ошибаться; разбор не влияет на оценку.</p>
+      <h3 id="ai-title">AI tutor review</h3>
+      <p class="field-hint">Grammar, meaning, and a listening tip. The experimental AI can make mistakes; it does not change your score.</p>
       <form id="ai-form" action="{{ url_for('ai_notes', exercise_id=exercise.id) }}" method="post">
         <input type="hidden" name="answer" value="{{ answer }}">
-        <button class="button" id="ai-button" type="submit" hidden>Спросить AI</button>
+        <button class="button" id="ai-button" type="submit" hidden>Ask AI</button>
       </form>
-      <noscript><p>Для AI-разбора включи JavaScript. Обычная проверка работает без него.</p></noscript>
+      <noscript><p>Enable JavaScript for the AI review. Standard checking works without it.</p></noscript>
       <p id="ai-status" role="status" aria-live="polite"></p>
       <div id="ai-analysis"></div>
       <section id="ai-chat" hidden aria-labelledby="chat-title">
-        <h4 id="chat-title">Уточнить у преподавателя</h4>
-        <p class="field-hint">Чат исчезнет при новой проверке или смене упражнения. AI учитывает разбор и два последних уточнения.</p>
+        <h4 id="chat-title">Ask a follow-up</h4>
+        <p class="field-hint">The chat resets when you submit a new answer or leave the exercise. AI uses the review and the last two questions.</p>
         <div id="chat-messages" role="log" aria-live="polite"></div>
         <form id="chat-form" action="{{ url_for('ai_chat', exercise_id=exercise.id) }}" method="post">
-          <label for="chat-question">Твой вопрос</label>
-          <textarea id="chat-question" name="question" rows="2" maxlength="400" required placeholder="Почему здесь используется это время?"></textarea>
-          <button class="button" id="chat-button" type="submit">Отправить вопрос</button>
+          <label for="chat-question">Your question</label>
+          <textarea id="chat-question" name="question" rows="2" maxlength="400" required placeholder="Why is this tense used here?"></textarea>
+          <button class="button" id="chat-button" type="submit">Send question</button>
         </form>
         <p id="chat-status" role="status" aria-live="polite"></p>
       </section>
@@ -85,29 +86,29 @@
     <script src="{{ url_for('static', path='/feedback.js') }}" defer></script>
     {% endif %}
     <details class="scoring-rules">
-      <summary>Как считается точность?</summary>
-      <p>Каждый пропуск, замена или лишнее слово — одно расхождение. Точность = 100 × (1 − расхождения / слова оригинала), минимум 0%. Слова считаются после нормализации; опечатки пока учитываются как замены.</p>
-      <p>Игнорируем регистр, пробелы и обычную пунктуацию. Поддерживаем однозначные сокращения (например, don't = do not) и целые числа от 0 до 20, записанные словом или цифрой. Апостроф внутри слова значим: we'll и well — разные слова. Неоднозначные 's и 'd не раскрываем.</p>
-      <p>Это точность записи, а не оценка общего уровня английского или понимания смысла. Расхождения и пояснения к ним формирует Python. AI отдельно разбирает ответ и объясняет английский; он не меняет оценку и не оценивает твоё произношение по письменному ответу.</p>
+      <summary>How is accuracy calculated?</summary>
+      <p>Each missing, replaced, or extra word counts as one difference. Accuracy = 100 × (1 − differences / transcript words), with a minimum of 0%. Words are counted after normalization; spelling mistakes still count as replacements.</p>
+      <p>Case, spaces, and ordinary punctuation are ignored. Unambiguous contractions such as don't = do not and whole numbers from 0 to 20 are supported. An apostrophe inside a word matters: we'll and well are different. Ambiguous 's and 'd forms are not expanded.</p>
+      <p>This is transcription accuracy, not a rating of your English level or meaning comprehension. Python calculates differences; AI gives separate English feedback and does not assess pronunciation from typed text.</p>
     </details>
-    <a class="back-link retry-link" href="{{ url_for('exercise_page', exercise_id=exercise.id) }}{% if training %}?training=1{% endif %}">Повторить без подсказок ↗</a>
+    <a class="back-link retry-link" href="{{ url_for('exercise_page', exercise_id=exercise.id) }}{% if training %}?training=1{% endif %}">Retry without hints ↗</a>
     <div class="exercise-navigation">
       {% if training %}
       <form method="post" action="{{ url_for('train') }}">
         <input type="hidden" name="topic" value="{{ exercise.topic }}">
         <input type="hidden" name="level" value="{{ exercise.level }}">
-        <button class="button" type="submit">Следующее упражнение →</button>
+        <button class="button" type="submit">Next exercise →</button>
       </form>
-      <p class="field-hint">Та же тема и уровень. Новое задание, если готово; иначе — случайное из библиотеки.</p>
+      <p class="field-hint">Same topic and level. A new exercise is used if ready; otherwise one is selected from the library.</p>
       {% elif next_exercise %}
-      <a class="button" href="{{ url_for('exercise_page', exercise_id=next_exercise.id) }}">Следующее упражнение →</a>
-      <p class="field-hint">{{ next_exercise.title }} · Уровень {{ next_exercise.level }}. Переход идёт по порядку каталога.</p>
+      <a class="button" href="{{ url_for('exercise_page', exercise_id=next_exercise.id) }}">Next exercise →</a>
+      <p class="field-hint">{{ next_exercise.title | label }} · Level {{ next_exercise.level }}. The catalog order is used.</p>
       {% else %}
-      <p>Это последнее упражнение в текущем каталоге.</p>
-      <a class="button" href="{{ url_for('catalog') }}">Вернуться к упражнениям →</a>
+      <p>This is the last exercise in the current library.</p>
+      <a class="button" href="{{ url_for('catalog') }}">Back to the library →</a>
       {% endif %}
     </div>
-    <p class="field-hint">Попытка сохранена в истории. При переходе мини-чат очищается.</p>
+    <p class="field-hint">Attempt saved to history. The mini-chat resets when you leave the exercise.</p>
   </section>
   {% endif %}
 </div>

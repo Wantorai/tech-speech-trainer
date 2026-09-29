@@ -88,3 +88,10 @@ def get_attempt(attempt_id: int) -> dict | None:
             "SELECT * FROM attempts WHERE id = ?", (attempt_id,)
         ).fetchone()
     return decode_attempt(row) if row else None
+
+
+def completed_exercise_ids() -> set[str]:
+    """Return exercise IDs that have at least one submitted answer."""
+    with connect() as connection:
+        rows = connection.execute("SELECT exercise_json FROM attempts").fetchall()
+    return {json.loads(row[0])["id"] for row in rows}

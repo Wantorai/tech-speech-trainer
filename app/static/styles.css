@@ -118,6 +118,11 @@ button[hidden] { display: none; }
 #chat-form label { display: block; margin: 18px 0 8px; }
 #chat-question { min-height: 80px; margin-bottom: 12px; }
 #ai-status, #chat-status { display: flex; align-items: flex-start; gap: 10px; }
+.progress-line { color: var(--muted); font-size: .85rem; margin: 16px 0; }
+#training-status { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.status-icon { display: inline-grid; place-items: center; width: 1.35rem; height: 1.35rem; border-radius: 50%; font-weight: 800; font-size: 1rem; }
+.status-icon--working { color: #9a6519; background: #f6e7c7; }
+.status-icon--ready { color: #176b54; background: #d9efe5; }
 #ai-form[aria-busy="true"] ~ #ai-status::before,
 #chat-form[aria-busy="true"] ~ #chat-status::before {
   content: "";

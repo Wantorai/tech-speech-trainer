@@ -20,7 +20,7 @@ async function requestTutor(event) {
   if (aiButton.disabled || initialAnalysis) return;
   aiButton.disabled = true;
   aiForm.setAttribute("aria-busy", "true");
-  aiStatus.textContent = "AI готовит разбор. Если сейчас создаётся упражнение, сначала дождёмся текущего этапа. Это может занять несколько минут…";
+  aiStatus.textContent = "AI is preparing a review. If an exercise is being generated, the current step will finish first. This may take a few minutes…";
   aiAnalysis.replaceChildren();
   const controller = new AbortController();
   activeRequest = controller;
@@ -36,9 +36,9 @@ async function requestTutor(event) {
     if (!response.ok && response.status !== 429) throw new Error("Request failed");
     aiStatus.textContent = data.message;
     const sections = [
-      ["summary_ru", "Твой ответ"], ["grammar_ru", "Грамматика и смысл"],
-      ["listening_ru", "На что обратить внимание на слух"],
-      ["example_en", "Похожий пример"], ["example_ru", "Перевод примера"],
+      ["summary_ru", "Your answer"], ["grammar_ru", "Grammar and meaning"],
+      ["listening_ru", "Listening focus"],
+      ["example_en", "Similar example"], ["example_ru", "Example translation"],
     ];
     for (const [key, title] of sections) {
       if (!data.analysis?.[key]) continue;
@@ -54,12 +54,12 @@ async function requestTutor(event) {
       aiForm.hidden = true;
       chat.hidden = false;
     } else {
-      aiButton.textContent = "Попробовать ещё раз";
+      aiButton.textContent = "Try again";
     }
   } catch {
     if (controller.signal.aborted) return;
-    aiStatus.textContent = "Не удалось получить AI-разбор. Результат проверки сохранён. Попробуй позже.";
-    aiButton.textContent = "Попробовать ещё раз";
+    aiStatus.textContent = "The AI review failed. Your score was saved. Try again later.";
+    aiButton.textContent = "Try again";
   } finally {
     aiButton.disabled = false;
     aiForm.removeAttribute("aria-busy");
@@ -85,7 +85,7 @@ async function sendFollowup(event) {
   if (chatButton.disabled || !initialAnalysis) return;
   const question = chatQuestion.value.trim();
   if (!question || question.length > 400) {
-    chatStatus.textContent = "Введи вопрос от 1 до 400 символов.";
+    chatStatus.textContent = "Enter a question from 1 to 400 characters.";
     return;
   }
   const body = new FormData();
@@ -98,7 +98,7 @@ async function sendFollowup(event) {
   chatButton.disabled = true;
   chatQuestion.disabled = true;
   chatForm.setAttribute("aria-busy", "true");
-  chatStatus.textContent = "Преподаватель отвечает…";
+  chatStatus.textContent = "The tutor is replying…";
   try {
     const response = await fetch(chatForm.action, {
       method: "POST", body, signal: controller.signal,
@@ -107,19 +107,19 @@ async function sendFollowup(event) {
     const data = await response.json();
     if (controller.signal.aborted) return;
     if (!response.ok && response.status !== 429) {
-      chatStatus.textContent = data.detail || "Не удалось отправить вопрос.";
+      chatStatus.textContent = data.detail || "The question could not be sent.";
       return;
     }
     chatStatus.textContent = data.message;
     if (data.status === "ready") {
-      appendChatMessage("Ты", question);
-      appendChatMessage("AI-преподаватель", data.reply);
+      appendChatMessage("You", question);
+      appendChatMessage("AI tutor", data.reply);
       chatHistory = [...chatHistory, { question, answer_ru: data.reply }].slice(-2);
       chatQuestion.value = "";
     }
   } catch {
     if (controller.signal.aborted) return;
-    chatStatus.textContent = "Не удалось получить ответ. Вопрос и переписка сохранены на странице — попробуй ещё раз.";
+    chatStatus.textContent = "The reply failed. Your question and chat remain on this page; try again.";
   } finally {
     chatButton.disabled = false;
     chatQuestion.disabled = false;
@@ -146,7 +146,7 @@ function resetTutorChat() {
   chatQuestion.disabled = false;
   aiForm.removeAttribute("aria-busy");
   chatForm.removeAttribute("aria-busy");
-  aiButton.textContent = "Спросить AI";
+  aiButton.textContent = "Ask AI";
 }
 
 if (aiForm) {

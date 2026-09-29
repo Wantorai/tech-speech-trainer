@@ -63,15 +63,15 @@ def test_history_paginates_newest_first():
     assert len(first) == 20 and first[0]["id"] == 21 and more
     assert len(second) == 1 and second[0]["id"] == 1 and not more_second
     with TestClient(app) as client:
-        assert "Более старые" in client.get("/history").text
-        assert "Более новые" in client.get("/history?page=2").text
+        assert "Older" in client.get("/history").text
+        assert "Newer" in client.get("/history?page=2").text
         assert client.get("/history?page=0").status_code == 422
 
 
 def test_missing_and_mismatched_attempts():
     """Reject missing records and attempts belonging to another exercise."""
     with TestClient(app) as client:
-        assert "Здесь пока нет попыток" in client.get("/history").text
+        assert "No attempts yet" in client.get("/history").text
         assert client.get("/history/999").status_code == 404
         client.post(URL, data={"answer": "hello"})
         assert client.get("/exercises/intro-02?attempt=1").status_code == 404

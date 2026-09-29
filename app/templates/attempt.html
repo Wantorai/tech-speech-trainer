@@ -1,20 +1,20 @@
 {% extends "base.html" %}
-{% block title %}Сохранённая попытка — Tech Speech Trainer{% endblock %}
+{% block title %}Saved Attempt — Tech Speech Trainer{% endblock %}
 {% block content %}
 <div class="exercise-page">
-  <a class="back-link" href="{{ url_for('history_page') }}">← История попыток</a>
-  <h1>{{ attempt.exercise.title }}</h1>
-  <p>{{ attempt.created_at }} · UTC · Уровень {{ attempt.exercise.level }}</p>
+  <a class="back-link" href="{{ url_for('history_page') }}">← Attempt history</a>
+  <h1>{{ attempt.exercise.title | label }}</h1>
+  <p>{{ attempt.created_at }} · UTC · Level {{ attempt.exercise.level }}</p>
   <section class="result-panel">
-    <h2>Точность: {{ '%g' | format(attempt.feedback.comparison.score) }}%</h2>
-    <h3>Твой ответ</h3><blockquote class="transcript" lang="en">{{ attempt.answer }}</blockquote>
-    <h3>Оригинал</h3><blockquote class="transcript" lang="en">{{ attempt.exercise.transcript }}</blockquote>
-    <h3>Перевод</h3><p>{{ attempt.exercise.translation_ru }}</p>
-    <p>Расхождений: {{ attempt.feedback.comparison.errors }}.</p>
+    <h2>Accuracy: {{ '%g' | format(attempt.feedback.comparison.score) }}%</h2>
+    <h3>Your answer</h3><blockquote class="transcript" lang="en">{{ attempt.answer }}</blockquote>
+    <h3>Transcript</h3><blockquote class="transcript" lang="en">{{ attempt.exercise.transcript }}</blockquote>
+    <h3>Russian translation</h3><p lang="ru">{{ attempt.exercise.translation_ru }}</p>
+    <p>Differences: {{ attempt.feedback.comparison.errors }}.</p>
     <ul>{% for explanation in attempt.feedback.explanations %}<li>{{ explanation }}</li>{% endfor %}</ul>
-    <details><summary>Версия упражнения</summary><p>Снимок текста, перевода и метаданных: <code>{{ attempt.exercise_version[:12] }}</code>. Оценка сохранена на момент ответа.</p></details>
-    <p class="field-hint">AI-разбор и мини-чат не сохраняются.</p>
+    <details><summary>Exercise version</summary><p>Snapshot of the text, translation, and metadata: <code>{{ attempt.exercise_version[:12] }}</code>. The score is preserved as submitted.</p></details>
+    <p class="field-hint">AI reviews and mini-chats are not saved.</p>
   </section>
-  {% if current_exercise %}<a class="button" href="{{ url_for('exercise_page', exercise_id=current_exercise.id) }}">Повторить упражнение →</a>{% endif %}
+  {% if current_exercise %}<a class="button" href="{{ url_for('exercise_page', exercise_id=current_exercise.id) }}">Retry exercise →</a>{% endif %}
 </div>
 {% endblock %}
