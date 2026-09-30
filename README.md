@@ -6,7 +6,7 @@ Listen to a short recording, type the English words you heard, and review the di
 
 ## Project status
 
-**Early development — 24 prepared exercises, automatic local generation, and an experimental AI tutor.** The app includes a filterable catalog across three topics and four levels, bundled audio and Russian translations, deterministic comparison and explanations, an accuracy score, teacher feedback from local Ollama, and an ephemeral follow-up chat. Local SQLite attempt history and background generation are available. The generated library holds up to 120 exercises; Docker packaging is upcoming.
+**Early development — 24 prepared exercises, automatic local generation, and an experimental AI tutor.** The app includes a filterable catalog across three topics and four levels, bundled audio and Russian translations, deterministic comparison and explanations, an accuracy score, teacher feedback from local Ollama, and an ephemeral follow-up chat. Local SQLite attempt history and background generation are available. The generated library holds up to 120 exercises; a basic Docker demo is included.
 
 This is a learning project focused on Python development, practical AI integration, and a reproducible setup for reviewers.
 
@@ -53,6 +53,22 @@ uv run --locked --group audio python -m piper.download_voices en_US-ljspeech-hig
 ```
 
 The basic demo remains usable if Ollama or Piper is unavailable. Generated exercises are created only when both the local model and the voice synthesis setup are ready.
+
+### Docker demo
+
+Docker is the fastest way to review the prepared application without installing Python or `uv`. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/), then run from the repository root:
+
+```sh
+docker compose up --build
+```
+
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000). The container includes the 24 prepared exercises, bundled audio, scoring, translations, and local history. History and generated runtime files are kept in a named Docker volume. Stop the container with:
+
+```sh
+docker compose down
+```
+
+This basic container does not include the Ollama model or Piper voice files. Use the local full AI setup above when reviewing teacher feedback or automatic exercise generation. Docker support for connecting the container to a separate Ollama service is a later packaging step.
 
 ## Run locally
 
@@ -299,7 +315,8 @@ The web app generates exercises by topic and level, checks technical constraints
 - [x] Add ephemeral follow-up questions tied to the current exercise and attempt.
 - [x] Add topic/level filters and next-exercise navigation.
 - [x] Generate, validate, synthesize, and persist new exercises with a bounded background library.
-- [ ] Verify Docker setup and add automated checks and screenshots.
+- [x] Add a basic Docker demo for reviewers.
+- [ ] Add automated Docker checks and screenshots.
 
 ## Development notes
 
