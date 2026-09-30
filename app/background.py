@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from pathlib import Path
 from threading import Condition, Lock
+from urllib.error import URLError
 
 from app.exercises import Exercise
 from app.generation import (
@@ -186,6 +187,9 @@ class Generator:
             )
             if not published:
                 set_status(topic, level, "full")
+        except (OSError, URLError, TimeoutError, ConnectionError) as error:
+            LOGGER.warning("Background exercise generation unavailable: %s", error)
+            set_status(topic, level, "unavailable")
         except Exception:
             LOGGER.exception("Background exercise generation failed")
             set_status(topic, level, "unavailable")

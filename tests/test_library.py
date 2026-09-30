@@ -160,6 +160,18 @@ def test_staging_audio_and_path_traversal_are_not_served():
     assert not audio_path(item.id).exists()
 
 
+def test_startup_cleanup_removes_missing_generated_rows_and_protected_ids():
+    """Recover a database that references a generated record whose WAV was removed."""
+    item = new_exercise()
+    assert publish(item, {})
+    protect_exercise(item)
+    audio_path(item.id).unlink()
+    cleanup_audio()
+    assert item.id not in {exercise.id for exercise in generated_exercises()}
+    assert group_state(TOPIC, 1)["current_id"] is None
+    assert group_state(TOPIC, 1)["ready_id"] is None
+
+
 def test_training_remains_responsive_and_does_not_queue_generation():
     """Return library items while one generation runs and consume its ready result next."""
     entered, release = Event(), Event()

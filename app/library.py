@@ -42,7 +42,11 @@ def generated_exercises() -> tuple[Exercise, ...]:
         rows = db.execute(
             "SELECT payload FROM generated_exercises ORDER BY rowid"
         ).fetchall()
-    return tuple(Exercise(**json.loads(row[0])) for row in rows)
+    return tuple(
+        exercise
+        for exercise in (Exercise(**json.loads(row[0])) for row in rows)
+        if audio_path(exercise.id).is_file()
+    )
 
 
 def find_generated(identifier: str) -> Exercise | None:
@@ -51,7 +55,10 @@ def find_generated(identifier: str) -> Exercise | None:
         row = db.execute(
             "SELECT payload FROM generated_exercises WHERE id=?", (identifier,)
         ).fetchone()
-    return Exercise(**json.loads(row[0])) if row else None
+    if not row:
+        return None
+    exercise = Exercise(**json.loads(row[0]))
+    return exercise if audio_path(identifier).is_file() else None
 
 
 def group_state(topic: str, level: int) -> dict:
@@ -211,8 +218,17 @@ def mark_completed(identifier: str):
 
 
 def cleanup_audio():
-    """Remove only owned orphan WAVs left by interrupted generation or replacement."""
-    known = {item.id for item in generated_exercises()}
+    """Remove orphan files and database rows left by interrupted generation or cleanup."""
+    with library_connection() as db:
+        rows = db.execute("SELECT id FROM generated_exercises").fetchall()
+        missing = [row[0] for row in rows if not audio_path(row[0]).is_file()]
+        for identifier in missing:
+            db.execute("DELETE FROM generated_exercises WHERE id=?", (identifier,))
+            db.execute(
+                "UPDATE training_groups SET current_id=CASE WHEN current_id=? THEN NULL ELSE current_id END, ready_id=CASE WHEN ready_id=? THEN NULL ELSE ready_id END, status=CASE WHEN ready_id=? THEN 'idle' ELSE status END WHERE current_id=? OR ready_id=?",
+                (identifier, identifier, identifier, identifier, identifier),
+            )
+        known = {row[0] for row in db.execute("SELECT id FROM generated_exercises")}
     folder = database_path().resolve().parent / "generated-audio"
     for path in folder.glob("gen-*.wav"):
         if re.fullmatch(r"gen-[0-9a-f]{32}", path.stem) and path.stem not in known:
