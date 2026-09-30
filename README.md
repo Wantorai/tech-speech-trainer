@@ -10,9 +10,53 @@ Listen to a short recording, type the English words you heard, and review the di
 
 This is a learning project focused on Python development, practical AI integration, and a reproducible setup for reviewers.
 
+## Quick start for reviewers
+
+Choose the setup that matches the depth of the review. The basic setup is enough to inspect the application flow and does not require an AI model, an API key, or a cloud account.
+
+### Basic demo (recommended first)
+
+Requirements: Python 3.12 and [uv](https://docs.astral.sh/uv/).
+
+```sh
+uv sync --locked
+uv run --locked uvicorn app.main:app --reload --reload-dir app
+```
+
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000). This mode includes:
+
+- 24 prepared English listening exercises with bundled audio;
+- four difficulty levels and topic filters;
+- transcription comparison, accuracy scoring, and Russian translations;
+- local attempt history;
+- fallback behavior when the optional AI service is unavailable.
+
+### Full AI demo (optional)
+
+The AI features run locally through [Ollama](https://ollama.com/download/windows) and do not require an API key. Install Ollama and start its local server. On Windows, launching the Ollama application is usually enough; otherwise run `ollama serve` in a separate terminal. Then download the Qwen3 model:
+
+```sh
+ollama pull qwen3:4b
+```
+
+The model download is approximately 2.5 GB and inference needs additional memory. Then start the application using the basic command above. The full AI mode adds:
+
+- **Ask AI** teacher feedback about grammar, meaning, and listening focus;
+- a temporary follow-up chat for the current exercise;
+- background generation of new technical listening exercises.
+
+To test background exercise generation, install the optional audio dependencies and Piper voice model before starting the application:
+
+```sh
+uv sync --locked --group audio
+uv run --locked --group audio python -m piper.download_voices en_US-ljspeech-high --data-dir models/piper
+```
+
+The basic demo remains usable if Ollama or Piper is unavailable. Generated exercises are created only when both the local model and the voice synthesis setup are ready.
+
 ## Run locally
 
-Prerequisites: Python 3.12 and [uv](https://docs.astral.sh/uv/). Run these commands from the repository root:
+Run these commands from the repository root when the dependencies are already installed:
 
 ```sh
 uv sync --locked
@@ -21,7 +65,7 @@ uv run --locked uvicorn app.main:app --reload --reload-dir app
 
 Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Stop the foreground server with Ctrl+C. If port 8000 is already in use, add `--port 8001` and open that port instead.
 
-`uv sync` creates an isolated `.venv` and installs the versions recorded in `uv.lock`. Initial dependency downloads need internet access. The current app and bundled audio work locally without Ollama, a model download, an API key, or an external CDN.
+`uv sync` creates an isolated `.venv` and installs the versions recorded in `uv.lock`. Initial dependency downloads need internet access. The bundled application and audio work locally without Ollama, a model download, an API key, or an external CDN.
 
 Select **Start training** to immediately open a random saved exercise (introductions, Level 1 by default). In [the catalog](http://127.0.0.1:8000/exercises), choose a topic and level and press the training button to keep that selection throughout the session. Listen and submit your transcription to reveal the original, Russian translation, and comparison. **Next exercise** uses the new generated item if ready, otherwise a saved item with priority for unseen exercises. Ordinary catalog links retain the original sequential navigation. A new exercise starts with an empty answer and chat. Valid submissions are saved automatically; **Attempt history** shows earlier results.
 
