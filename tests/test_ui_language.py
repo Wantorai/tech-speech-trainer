@@ -2,7 +2,7 @@
 
 from fastapi.testclient import TestClient
 
-from app.exercises import FIRST_EXERCISE, Exercise
+from app.exercises import EXERCISES, FIRST_EXERCISE, Exercise
 from app.feedback import build_feedback
 from app.history import save_attempt
 from app.main import app
@@ -84,3 +84,14 @@ def test_training_status_contains_working_and_ready_icon_states():
     }
     assert "status-icon--working" in page.text
     assert "training.js" in page.text
+
+
+def test_exercise_page_shows_progress_for_its_level():
+    """Show the selected exercise level's progress instead of the global total."""
+    exercise = next(item for item in EXERCISES if item.level == 2)
+    with TestClient(app) as client:
+        client.post(f"/exercises/{exercise.id}", data={"answer": exercise.transcript})
+        page = client.get(f"/exercises/{exercise.id}")
+    assert "Level 2 progress:" in page.text
+    assert "1 unique exercises completed" in page.text
+    assert "1 of 6 currently available" in page.text

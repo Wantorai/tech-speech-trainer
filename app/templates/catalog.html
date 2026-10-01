@@ -2,6 +2,7 @@
 {% block title %}Exercise Library — Tech Speech Trainer{% endblock %}
 {% block content %}
 <div class="exercise-page">
+  {% set catalog_progress = progress(selected_level) if selected_level is not none else progress() %}
   <a class="back-link" href="{{ url_for('home') }}">← Home</a>
   <div class="exercise-heading">
     <p class="eyebrow">TECHNICAL INTERVIEW LISTENING PRACTICE</p>
@@ -39,7 +40,7 @@
     </article>
     {% else %}<p>No exercises match these filters. Try another topic or level.</p>{% endfor %}
   </div>
-  <p class="field-hint">{{ progress().completed }} unique exercises completed in total · {{ progress().available_completed }} of {{ progress().available }} currently available. Valid answers are saved to history; the mini-chat resets when you leave an exercise.</p>
+  <p class="field-hint">{{ catalog_progress.completed }} unique exercises completed in total · {{ catalog_progress.available_completed }} of {{ catalog_progress.available }} currently available{% if selected_level is not none %} at Level {{ selected_level }}{% endif %}. Valid answers are saved to history; the mini-chat resets when you leave an exercise.</p>
   <p class="field-hint">The generated library can hold up to {{ progress().generated_limit }} AI exercises, plus {{ progress().permanent }} permanent exercises.</p>
 </div>
 {% endblock %}

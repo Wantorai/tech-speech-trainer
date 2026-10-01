@@ -2,13 +2,14 @@
 {% block title %}{{ exercise.title | label }} — Tech Speech Trainer{% endblock %}
 {% block content %}
 <div class="exercise-page">
+  {% set level_progress = progress(exercise.level) %}
   <a class="back-link" href="{{ url_for('catalog') }}">← Exercise library</a>
   <div class="exercise-heading">
     <p class="eyebrow">{{ exercise.topic | label }} · Level {{ exercise.level }}</p>
     <h1>{{ exercise.title | label }}</h1>
     <p>Listen to the recording and type what you hear in English. You can replay it as many times as you need.</p>
   </div>
-  <p class="progress-line">Progress: <strong>{{ progress().completed }} unique exercises completed</strong> · {{ progress().available_completed }} of {{ progress().available }} currently available · Library limit: {{ progress().permanent }} permanent + {{ progress().generated_limit }} AI exercises</p>
+  <p class="progress-line">Level {{ exercise.level }} progress: <strong>{{ level_progress.completed }} unique exercises completed</strong> · {{ level_progress.available_completed }} of {{ level_progress.available }} currently available · Capacity: {{ level_progress.permanent + level_progress.generated_limit }} exercises</p>
   {% if exercise.id.startswith('gen-') %}<p class="field-hint">Created by AI · wording or translation may be imperfect.</p>{% endif %}
   {% if training %}
   <p id="training-status" role="status" data-url="{{ url_for('training_status') }}?topic={{ exercise.topic | urlencode }}&amp;level={{ exercise.level }}"><span class="status-icon status-icon--working" aria-hidden="true">◷</span><span class="training-status-text">Preparing the next exercise…</span></p>
