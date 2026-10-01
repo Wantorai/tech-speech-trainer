@@ -39,7 +39,7 @@
     </article>
     {% else %}<p>No exercises match these filters. Try another topic or level.</p>{% endfor %}
   </div>
-  <p class="field-hint">{{ progress().completed }} of {{ progress().available }} available exercises completed. Valid answers are saved to history; the mini-chat resets when you leave an exercise.</p>
+  <p class="field-hint">{{ progress().completed }} unique exercises completed in total · {{ progress().available_completed }} of {{ progress().available }} currently available. Valid answers are saved to history; the mini-chat resets when you leave an exercise.</p>
   <p class="field-hint">The generated library can hold up to {{ progress().generated_limit }} AI exercises, plus {{ progress().permanent }} permanent exercises.</p>
 </div>
 {% endblock %}

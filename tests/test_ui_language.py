@@ -2,7 +2,9 @@
 
 from fastapi.testclient import TestClient
 
-from app.exercises import FIRST_EXERCISE
+from app.exercises import FIRST_EXERCISE, Exercise
+from app.feedback import build_feedback
+from app.history import save_attempt
 from app.main import app
 
 
@@ -27,7 +29,7 @@ def test_progress_counts_unique_completed_exercises_and_shows_limit():
     """Increase progress once per exercise and expose the permanent plus AI limit."""
     with TestClient(app) as client:
         before = client.get("/exercises").text
-        assert "0 of 24" in before
+        assert "0 unique exercises completed" in before
         client.post(
             f"/exercises/{FIRST_EXERCISE.id}",
             data={"answer": FIRST_EXERCISE.transcript},
@@ -37,8 +39,31 @@ def test_progress_counts_unique_completed_exercises_and_shows_limit():
             data={"answer": FIRST_EXERCISE.transcript},
         )
         after = client.get("/history").text
-    assert "1 of 24" in after
+    assert "1 unique exercises completed" in after
+    assert "1 of 24 currently available" in after
     assert "24 permanent + 120 AI exercises" in after
+
+
+def test_progress_keeps_completed_exercises_after_library_rotation():
+    """Keep historical completions visible after an exercise leaves the bounded library."""
+    old_item = Exercise(
+        "gen-evicted",
+        "AI Work Scenario",
+        FIRST_EXERCISE.topic,
+        FIRST_EXERCISE.level,
+        "I reviewed a deployment with my team.",
+        "Я обсудил развёртывание с командой.",
+        "generated/gen-evicted.wav",
+    )
+    save_attempt(
+        old_item,
+        old_item.transcript,
+        build_feedback(old_item.transcript, old_item.transcript),
+    )
+    with TestClient(app) as client:
+        page = client.get("/history")
+    assert "1 unique exercises completed" in page.text
+    assert "0 of 24 currently available" in page.text
 
 
 def test_training_status_contains_working_and_ready_icon_states():

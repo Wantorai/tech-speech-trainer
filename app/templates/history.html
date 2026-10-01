@@ -4,7 +4,7 @@
 <div class="exercise-page">
   <h1>Attempt history</h1>
   <p>Answers are saved on this computer. Times are shown in UTC. AI reviews and mini-chats are not saved.</p>
-  <p class="progress-line">Progress: <strong>{{ progress().completed }} of {{ progress().available }}</strong> available exercises completed · Library limit: {{ progress().permanent }} permanent + {{ progress().generated_limit }} AI exercises</p>
+  <p class="progress-line">Progress: <strong>{{ progress().completed }} unique exercises completed</strong> · {{ progress().available_completed }} of {{ progress().available }} currently available · Library limit: {{ progress().permanent }} permanent + {{ progress().generated_limit }} AI exercises</p>
   {% for attempt in attempts %}
   <section class="practice-panel">
     <p class="eyebrow">{{ attempt.exercise.topic | label }} · Level {{ attempt.exercise.level }}</p>

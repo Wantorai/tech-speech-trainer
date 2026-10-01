@@ -91,11 +91,13 @@ def label(value: str) -> str:
 
 
 def progress_snapshot() -> dict[str, int]:
-    """Calculate unique completed exercises against the current bounded library."""
+    """Calculate historical progress and progress within the current library."""
     available = (*EXERCISES, *generated_exercises())
     available_ids = {item.id for item in available}
+    completed_ids = completed_exercise_ids()
     return {
-        "completed": len(completed_exercise_ids() & available_ids),
+        "completed": len(completed_ids),
+        "available_completed": len(completed_ids & available_ids),
         "available": len(available),
         "generated": len(available) - len(EXERCISES),
         "generated_limit": 120,

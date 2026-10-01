@@ -8,7 +8,7 @@
     <h1>{{ exercise.title | label }}</h1>
     <p>Listen to the recording and type what you hear in English. You can replay it as many times as you need.</p>
   </div>
-  <p class="progress-line">Progress: <strong>{{ progress().completed }} of {{ progress().available }}</strong> available exercises completed · Library limit: {{ progress().permanent }} permanent + {{ progress().generated_limit }} AI exercises</p>
+  <p class="progress-line">Progress: <strong>{{ progress().completed }} unique exercises completed</strong> · {{ progress().available_completed }} of {{ progress().available }} currently available · Library limit: {{ progress().permanent }} permanent + {{ progress().generated_limit }} AI exercises</p>
   {% if exercise.id.startswith('gen-') %}<p class="field-hint">Created by AI · wording or translation may be imperfect.</p>{% endif %}
   {% if training %}
   <p id="training-status" role="status" data-url="{{ url_for('training_status') }}?topic={{ exercise.topic | urlencode }}&amp;level={{ exercise.level }}"><span class="status-icon status-icon--working" aria-hidden="true">◷</span><span class="training-status-text">Preparing the next exercise…</span></p>
