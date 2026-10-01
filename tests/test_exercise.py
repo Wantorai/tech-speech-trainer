@@ -84,6 +84,14 @@ def test_audio_is_bundled_and_supports_seeking(client):
     assert len(response.content) == 44
 
 
+def test_exercise_has_replay_from_start_control(client):
+    """Expose a client-side control that restarts the current recording."""
+    page = client.get(f"/exercises/{FIRST_EXERCISE.id}")
+    assert 'id="exercise-audio"' in page.text
+    assert 'id="replay-audio"' in page.text
+    assert "audio.js" in page.text
+
+
 def test_templates_and_assets_do_not_depend_on_working_directory(client, monkeypatch):
     """Serve templates and static assets even after the working directory changes."""
     monkeypatch.chdir(APP_DIR / "static")

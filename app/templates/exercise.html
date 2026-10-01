@@ -15,12 +15,16 @@
   <p id="training-status" role="status" data-url="{{ url_for('training_status') }}?topic={{ exercise.topic | urlencode }}&amp;level={{ exercise.level }}"><span class="status-icon status-icon--working" aria-hidden="true">◷</span><span class="training-status-text">Preparing the next exercise…</span></p>
   <script src="{{ url_for('static', path='/training.js') }}" defer></script>
   {% endif %}
+  <script src="{{ url_for('static', path='/audio.js') }}" defer></script>
   <section class="practice-panel" aria-labelledby="audio-title">
     <h2 id="audio-title">1. Listen</h2>
-    <audio controls preload="metadata" aria-label="English exercise recording">
+    <audio id="exercise-audio" controls preload="metadata" aria-label="English exercise recording">
       <source src="{{ url_for('generated_audio', identifier=exercise.id) if exercise.id.startswith('gen-') else url_for('static', path='/' ~ exercise.audio_file) }}" type="audio/wav">
       Your browser does not support the audio player.
     </audio>
+    <div class="audio-actions">
+      <button class="button" id="replay-audio" type="button" aria-controls="exercise-audio">↺ Replay from start</button>
+    </div>
     <p class="field-hint">American English · synthesized speech</p>
     <form method="post" action="{{ url_for('check_answer', exercise_id=exercise.id) }}{% if training %}?training=1{% endif %}#result">
       <h2><label for="answer">2. Type what you heard</label></h2>

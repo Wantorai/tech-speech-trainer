@@ -84,6 +84,7 @@ h1 span { color: var(--green); }
 .practice-panel, .result-panel { background: white; border: 1px solid var(--line); border-radius: 16px; padding: 30px; margin-top: 25px; }
 .practice-panel h2 { font-size: 1.2rem; }
 audio { display: block; width: 100%; margin: 18px 0 10px; }
+.audio-actions { margin: 12px 0 4px; }
 .field-hint { font-size: .8rem; }
 .practice-panel form { margin-top: 28px; }
 textarea { display: block; width: 100%; resize: vertical; min-height: 120px; font: inherit; line-height: 1.6; color: var(--ink); border: 1px solid #8b9d90; border-radius: 8px; padding: 14px; }
