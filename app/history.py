@@ -90,8 +90,11 @@ def get_attempt(attempt_id: int) -> dict | None:
     return decode_attempt(row) if row else None
 
 
-def completed_exercise_ids() -> set[str]:
-    """Return exercise IDs that have at least one submitted answer."""
+def completed_exercise_ids(level: int | None = None) -> set[str]:
+    """Return completed exercise IDs, optionally limited to one difficulty level."""
     with connect() as connection:
         rows = connection.execute("SELECT exercise_json FROM attempts").fetchall()
-    return {json.loads(row[0])["id"] for row in rows}
+    snapshots = (json.loads(row[0]) for row in rows)
+    if level is None:
+        return {snapshot["id"] for snapshot in snapshots}
+    return {snapshot["id"] for snapshot in snapshots if snapshot["level"] == level}

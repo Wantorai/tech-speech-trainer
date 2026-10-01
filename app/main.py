@@ -90,18 +90,26 @@ def label(value: str) -> str:
     return LABELS.get(value, value)
 
 
-def progress_snapshot() -> dict[str, int]:
-    """Calculate historical progress and progress within the current library."""
+def progress_snapshot(level: int | None = None) -> dict[str, int]:
+    """Calculate historical progress and progress within a selected library scope."""
     available = (*EXERCISES, *generated_exercises())
+    if level is not None:
+        available = tuple(item for item in available if item.level == level)
     available_ids = {item.id for item in available}
-    completed_ids = completed_exercise_ids()
+    completed_ids = completed_exercise_ids(level=level)
+    permanent = (
+        len(EXERCISES)
+        if level is None
+        else sum(item.level == level for item in EXERCISES)
+    )
+    generated_limit = 120 if level is None else 30
     return {
         "completed": len(completed_ids),
         "available_completed": len(completed_ids & available_ids),
         "available": len(available),
-        "generated": len(available) - len(EXERCISES),
-        "generated_limit": 120,
-        "permanent": len(EXERCISES),
+        "generated": len(available) - permanent,
+        "generated_limit": generated_limit,
+        "permanent": permanent,
     }
 
 
@@ -408,6 +416,17 @@ def train(
     level: Annotated[str, Form()] = "",
 ):
     """Select an immediate training item and request at most one background successor."""
+    return start_training(request, topic, level)
+
+
+@app.get("/train", include_in_schema=False)
+def train_by_level(request: Request, topic: str = "", level: str = ""):
+    """Start the first available exercise from a level selected on the home page."""
+    return start_training(request, topic, level)
+
+
+def start_training(request: Request, topic: str, level: str):
+    """Select a training item and request one background successor for its scope."""
     topic = topic or TOPIC_ORDER[0]
     try:
         selected_level = int(level or "1")

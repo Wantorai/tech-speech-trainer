@@ -8,7 +8,7 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
-from app.exercises import EXERCISES, get_next_exercise
+from app.exercises import EXERCISES, TOPIC_ORDER, get_next_exercise
 from app.main import APP_DIR, app, label
 
 
@@ -46,6 +46,23 @@ def test_catalog_filters_accept_empty_values_and_combine_topic_with_level(client
         assert sum(f"/exercises/{item.id}" in page.text for item in EXERCISES) == 6
     assert "No exercises match" in client.get("/exercises?topic=unknown").text
     assert client.get("/exercises?level=abc").status_code == 422
+
+
+def test_home_level_cards_start_the_selected_level(client):
+    """Link each home level card to the first available exercise in that level."""
+    page = client.get("/")
+    for level in range(1, 5):
+        assert f"/train?level={level}" in page.text
+    with patch("app.main.Generator.request") as request:
+        response = client.get("/train", params={"level": 2}, follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"].startswith("http://testserver/exercises/")
+    exercise_id = (
+        response.headers["location"].split("/exercises/", 1)[1].split("?", 1)[0]
+    )
+    assert next(item for item in EXERCISES if item.id == exercise_id).level == 2
+    assert "training=1" in response.headers["location"]
+    request.assert_called_once_with(TOPIC_ORDER[0], 2)
 
 
 @pytest.mark.parametrize(
